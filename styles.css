@@ -494,6 +494,14 @@ body.night .ps-paper .ps-body.empty::before, body.night .ps-paper .tp-field:empt
   color: #eee; font-size: 14px;
 }
 .modal input:focus { outline: none; border-color: var(--accent); }
+/* the contact block (editContact in app.js): the input's look, several lines tall */
+.modal .contact-note { font-size: 12.5px; line-height: 1.5; opacity: 0.75; margin: 6px 0 10px; }
+.modal textarea.contact-text {
+  width: 100%; box-sizing: border-box; resize: vertical; font: inherit; font-size: 14px; line-height: 1.45;
+  padding: 9px 12px; border-radius: 6px; border: 1px solid #3a3a3a; background: var(--bg); color: #eee;
+}
+.modal textarea.contact-text:focus { outline: none; border-color: var(--accent); }
+body.light .modal textarea.contact-text { background: #fff; border-color: #cfcac0; color: #1c1a17; }
 
 /* the two button voices every dialog speaks in */
 .btn-gold {

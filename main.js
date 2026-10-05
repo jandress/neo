@@ -1801,6 +1801,7 @@ function buildMenu() {
           click: () => sendToWindow({ type: 'emailDraft' })
         },
         { label: t('Email Settings…'), click: () => sendToWindow({ type: 'emailSettings' }) },
+        { label: t('Contact Details…'), click: () => sendToWindow({ type: 'contact' }) },
         { label: t('Cover Art…'), click: () => sendToWindow({ type: 'coverArt' }) },
         {
           label: t('Goals…'),

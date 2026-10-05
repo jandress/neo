@@ -103,7 +103,7 @@ In a script the left panel stays open (click the little ☉ to tuck it away). Un
 
 The Outline tab turns your script into index cards, one per scene: the scene heading, how long it runs, who's in it, and a few lines of notes you can write right on the card (until you do, it shows the scene's first line of action). Drag a card to move the scene. Click a card's heading to change it. The + beside a card starts a new scene after it (and + Scene at the end adds one there), so you can lay out a whole script as cards before writing a word, and loose cards in the right-hand panel hold scenes that don't have a place yet.
 
-Scroll up to the title page and fill it in: "Written by," your name, your contact info at the bottom left (type it once and every script uses it), and your draft and date at the bottom right.
+Scroll up to the title page and fill it in: "Written by," your name, your contact info at the bottom left (type it once and every script and story uses it; File → Contact Details… changes it from anywhere), and your draft and date at the bottom right.
 
 When it's done, **File → Export** makes a PDF formatted the way the industry expects, on US letter paper, ready to send. It also exports Fountain and Final Draft (.fdx) files for when someone wants to open it in another program. To bring a script into NEO, drag a .fountain or .fdx file onto a shelf, or use Import. You can also paste in a whole script written in Fountain (the plain-text format most screenwriting apps can save), and NEO sorts the lines into scene headings, dialogue, and the rest.
 
@@ -114,7 +114,7 @@ Everything else works in scripts too: Notes, Darlings, ⌘⇧X placeholders, goa
 
 Right-click the + on any shelf and choose **New Story** (press and hold on a phone). A story is set the way you'll submit it, in standard manuscript format: letter paper, one-inch margins, 12-point type, double-spaced, every paragraph indented half an inch. The pages on screen are the pages that print, breaking in the same places.
 
-Page one is laid out for you. Type your legal name, address, phone, and email in the top left once; every story (and script) uses the same block. The word count in the top right is rounded to the nearest hundred, the way editors want it, and keeps itself up to date. The title and byline sit a little under halfway down. The byline starts as your pen name if you have one; click it to change it.
+Page one is laid out for you. Type your legal name, address, phone, and email in the top left once; every story and script uses the same block. You can also set it from File → Contact Details…, or by clicking your name at the top of the shelf. The word count in the top right is rounded to the nearest hundred, the way editors want it, and keeps itself up to date. The title and byline sit a little under halfway down. The byline starts as your pen name if you have one; click it to change it.
 
 Then write. Enter twice makes a scene break, which shows as a # on its own line. A story is one piece, so a third Enter doesn't start a new chapter. At the end, END appears by itself; you don't type it.
 

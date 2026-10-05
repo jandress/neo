@@ -2175,6 +2175,48 @@ async function reshelveBook() {
   toast(t('“{title}” is back on the shelf', { title: loose.find((b) => b.id === pick).title }));
 }
 
+// The writer's contact block: legal name, address, phone, email. One for the
+// whole library, whatever name the shelves are under, and it goes where an
+// editor or a producer looks for it: the foot of a script's title page, the
+// top of a story's first page. (The key keeps the name it had when scripts
+// were the only thing to use it.) Editable on those pages, or here.
+function editContact() {
+  if ($('#contact-modal')) return;
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.id = 'contact-modal';
+  bd.innerHTML = `
+    <div class="modal" style="width:420px">
+      <h2 style="font-size:16px">${t('Contact details')}</h2>
+      <p class="contact-note">${t('Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.')}</p>
+      <textarea class="contact-text" rows="6" spellcheck="false" placeholder="${t('Legal name, address, phone, email')}"></textarea>
+      <div style="text-align:right;margin-top:14px">
+        <button class="m-cancel btn-quiet" style="margin-right:10px">${t('Cancel')}</button>
+        <button class="m-ok btn-gold">${t('Save')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bd);
+  const ta = bd.querySelector('textarea');
+  ta.value = library.scriptContact || '';
+  ta.focus();
+  const done = async (save) => {
+    bd.remove();
+    if (!save) return;
+    library.scriptContact = ta.value.replace(/\s+$/, '');
+    // the block on the open page, if a script or story is showing one
+    const shown = $('#tp-contact');
+    if (shown) shown.textContent = library.scriptContact;
+    await writeLibrary(library);
+  };
+  bd.querySelector('.m-ok').onclick = () => done(true);
+  bd.querySelector('.m-cancel').onclick = () => done(false);
+  // Enter is a new line of the block; ⌘Enter (Ctrl+Enter) saves, Esc cancels
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); done(true); }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+  });
+}
+
 $('#author-chip').onclick = async () => {
   const cur = currentAuthor();
   const opts = [];
@@ -2184,6 +2226,7 @@ $('#author-chip').onclick = async () => {
     }
   }
   opts.push({ label: t('Rename {name}', { name: cur.name }), value: 'rename' });
+  opts.push({ label: t('Contact details…'), desc: t('Your legal name and how to reach you, for scripts and stories'), value: 'contact' });
   opts.push({ label: t('Add a pen name…'), desc: t('A separate set of shelves under another name'), value: 'add' });
   if (library.authors.length > 1) {
     opts.push({
@@ -2194,6 +2237,7 @@ $('#author-chip').onclick = async () => {
   }
   const pick = await optionModal(t('Writing as {name}', { name: cur.name }), null, opts);
   if (!pick) return;
+  if (pick === 'contact') { editContact(); return; }
   if (pick.startsWith('sw:')) {
     library.currentAuthorId = pick.slice(3);
   } else if (pick === 'rename') {
@@ -13601,6 +13645,7 @@ window.neo.onMenu(async (msg) => {
   }
   if (msg.type === 'emailDraft') doEmailDraft();
   if (msg.type === 'emailSettings') emailSettings();
+  if (msg.type === 'contact') editContact();
   if (msg.type === 'find') openSearch();
   if (msg.type === 'spellcheck') toggleSpellcheck();
   if (msg.type === 'spellLanguage') changeSpellLanguage(msg.value);

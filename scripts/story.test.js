@@ -129,3 +129,31 @@ test('the Word file: exact double spacing, a header with the page number, none o
   const courier = Object.fromEntries(st.stDocxEntries({ ...sample(), font: 'courier' }).map((e) => [e.path, e.content]));
   assert.match(courier['word/styles.xml'], /w:ascii="Courier New"/);
 });
+
+// the importer's reader of a manuscript's first page, from main.js
+const mainSrc = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
+const mctx = vm.createContext({});
+vm.runInContext(mainSrc.slice(mainSrc.indexOf('// ---- manuscript reader:'), mainSrc.indexOf('// ---- end of manuscript reader ----')) + ';this.readManuscript = readManuscript;', mctx);
+const P = (...texts) => texts.map((text) => ({ text }));
+
+test('a Word file in manuscript format is read as a story', () => {
+  // NEO's own export: the count's tab is lost, so it is glued to the name
+  const ms = mctx.readManuscript(P('Jo Writerabout 4,300 words', '1 Elm St', 'jo@example.com', 'The Harbor at Night', 'by J. A. Crow', '', 'It was late.', '#', 'Morning came.', 'END'));
+  assert.equal(ms.title, 'The Harbor at Night');
+  assert.equal(ms.author, 'J. A. Crow');
+  assert.equal(ms.contact, 'Jo Writer\n1 Elm St\njo@example.com');
+  assert.deepEqual(ms.body.map((p) => p.text), ['It was late.', '#', 'Morning came.'], 'END left off');
+  // the count on a line of its own, blank lines down to the title
+  const b = mctx.readManuscript(P('Jo Writer', 'jo@example.com', 'Approx. 1,200 words', '', '', '', '*Rapture*', '', 'by William Shunn', '', 'Text.', 'THE END'));
+  assert.equal(b.title, 'Rapture');
+  assert.equal(b.contact, 'Jo Writer\njo@example.com');
+  assert.deepEqual(b.body.map((p) => p.text), ['Text.']);
+});
+
+test('other files are not read as stories', () => {
+  assert.equal(mctx.readManuscript(P('The Long Way Home', 'by Jo Writer', 'Chapter One', 'It was late.')), null, 'no count');
+  assert.equal(mctx.readManuscript(P('Jo Writer', 'about 90,000 words', 'Notes on the plot', 'More notes.')), null, 'no byline');
+  // a novel's first page reads the same, but its chapters start on new pages
+  const novel = [...P('Jo Writer', 'about 90,000 words', 'The Long Book', 'by Jo Writer', 'One.'), { text: 'Two.', pageBreak: true }, { text: 'Three.', pageBreak: true }];
+  assert.equal(mctx.readManuscript(novel), null, 'a novel stays a book');
+});

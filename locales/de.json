@@ -681,5 +681,38 @@
   "Write in a new paragraph below or above": "In einem neuen Absatz darunter oder darüber schreiben",
   "Select": "Auswählen",
   "Move to stretch it, then y to copy or d to cut.": "Bewegen, um sie zu erweitern, dann y zum Kopieren oder d zum Ausschneiden.",
-  "Delete the letter under the caret": "Den Buchstaben unter dem Cursor löschen"
+  "Delete the letter under the caret": "Den Buchstaben unter dem Cursor löschen",
+  "“{title}” is a book now": "„{title}“ ist jetzt ein Buch",
+  "“{title}” is a short story now, in manuscript format": "„{title}“ ist jetzt eine Kurzgeschichte, im Manuskriptformat",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} Geschichte in „{shelf}“ importiert, im Manuskriptformat",
+    "other": "{n} Geschichten in „{shelf}“ importiert, im Manuskriptformat"
+  },
+  "+ Section": "+ Abschnitt",
+  "about {n} words": {
+    "one": "etwa {n} Wort",
+    "other": "etwa {n} Wörter"
+  },
+  "Blank: from the title": "Leer: aus dem Titel",
+  "by": "von",
+  "Change the running head": "Kolumnentitel ändern",
+  "END": "ENDE",
+  "flash fiction": "Flash Fiction",
+  "Legal name, address, phone, email": "Bürgerlicher Name, Adresse, Telefon, E-Mail",
+  "Make it a book": "Zum Buch machen",
+  "Make it a short story": "Zur Kurzgeschichte machen",
+  "Manuscript Font": "Manuskriptschrift",
+  "Manuscript PDF (.pdf)": "Manuskript als PDF (.pdf)",
+  "Manuscript Word (.docx)": "Manuskript als Word (.docx)",
+  "New Story": "Neue Geschichte",
+  "novel length": "Romanlänge",
+  "novelette": "Novelette",
+  "novella": "Novelle",
+  "Rounded the way editors read it": "Gerundet, wie Redaktionen es lesen",
+  "Running head keywords": "Stichwörter im Kolumnentitel",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Wieder als Buch setzen: Kapitel, Cover, die Buchexporte. Der Text bleibt, wie er ist.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "Im Manuskriptformat setzen, bereit zur Einsendung. Der Text bleibt, wie er ist.",
+  "short story": "Kurzgeschichte",
+  "Story": "Geschichte",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Das Manuskript als Word, oder als Text, Markdown oder HTML, über das Teilen-Menü."
 }

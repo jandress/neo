@@ -1732,21 +1732,30 @@ function bookTile(meta, opts = {}) {
     }
     // no hover on a touch screen, so the ↻ that lives under the pointer
     // moves into the menu; picking an image file is a desktop affair
-    const script = isScript(meta) || isShortStory(meta);
-    if (script) { /* card stock, or a manuscript page: no cover to change */ } else if (NO_HOVER) options.push({ label: t('New cover'), desc: t('Another abstract cover for this book.'), value: 'refresh' });
+    const script = isScript(meta);
+    const paper = script || isShortStory(meta); // card stock, or a manuscript page: no cover to change
+    if (paper) { /* nothing to paint */ } else if (NO_HOVER) options.push({ label: t('New cover'), desc: t('Another abstract cover for this book.'), value: 'refresh' });
     else options.push({ label: meta.coverImage ? t('Replace cover art…') : t('Set cover art…'), desc: t('Pick an image (2:3 works best). Or just drag one from Finder onto the book.'), value: 'cover' });
-    if (meta.coverImage && !script) {
+    if (meta.coverImage && !paper) {
       options.push({ label: t('Remove cover art'), desc: t('Deletes the image from the book folder. (To just hide it, use the ↻ on the book.)'), danger: true, value: 'uncover' });
     }
-    if (!window.Capacitor && !script) options.push({ label: t('Save cover as image…'), desc: t('Full size, with your title and author.'), value: 'saveCover' });
+    if (!window.Capacitor && !paper) options.push({ label: t('Save cover as image…'), desc: t('Full size, with your title and author.'), value: 'saveCover' });
     // Pocket has no File menu: export lives here and in the ⋯ sheet
     if (window.Capacitor) {
       options.push(script
         ? { label: t('Export…'), desc: t('Fountain or Final Draft, through the share sheet.'), value: 'export' }
-        : { label: t('Export…'), desc: t('Text, Markdown, HTML, Word or EPUB, through the share sheet.'), value: 'export' });
+        : isShortStory(meta)
+          ? { label: t('Export…'), desc: t('The manuscript in Word, or Text, Markdown or HTML, through the share sheet.'), value: 'export' }
+          : { label: t('Export…'), desc: t('Text, Markdown, HTML, Word or EPUB, through the share sheet.'), value: 'export' });
     }
     // the ↻ on the cover, for the keyboard and screen readers
-    if (!script) options.push({ label: t('New cover'), value: 'refresh' });
+    if (!paper) options.push({ label: t('New cover'), value: 'refresh' });
+    // a book of one chapter can be set as a short story, and a story that
+    // grew can be a book again; the words stay as they are
+    if (isShortStory(meta)) options.push({ label: t('Make it a book'), desc: t('Set as a book again: chapters, a cover, the book exports. The words stay as they are.'), value: 'toBook' });
+    else if (!script && !meta.kind && (meta.chapterOrder || []).filter((c) => isStory(c, meta)).length <= 1) {
+      options.push({ label: t('Make it a short story'), desc: t('Set in manuscript format, ready to submit. The words stay as they are.'), value: 'toStory' });
+    }
     options.push(
       { label: t('Set word goal…'), desc: t('Adds the subtle progress bar to the cover.'), value: 'goal' },
       { label: t('Remove from bookshelf'), desc: t('Takes it off your shelves. The files stay safe in your NEO Library folder on disk.'), value: 'remove' },
@@ -1766,6 +1775,16 @@ function bookTile(meta, opts = {}) {
     } else if (choice === 'export' && script) {
       const fmt = await optionModal(t('Export “{title}”', { title: meta.title }), null, [
         { label: 'Fountain (.fountain)', value: 'fountain' }, { label: 'Final Draft (.fdx)', value: 'fdx' }
+      ]);
+      if (!fmt) return;
+      await openBook(meta.id);
+      await doExport(fmt);
+    } else if (choice === 'toStory' || choice === 'toBook') {
+      await stConvert(meta, choice === 'toStory');
+    } else if (choice === 'export' && isShortStory(meta)) {
+      const fmt = await optionModal(t('Export “{title}”', { title: meta.title }), null, [
+        { label: t('Manuscript Word (.docx)'), value: 'docx' }, { label: t('Text (.txt)'), value: 'txt' },
+        { label: t('Markdown (.md)'), value: 'md' }, { label: t('HTML (.html)'), value: 'html' }
       ]);
       if (!fmt) return;
       await openBook(meta.id);
@@ -6611,6 +6630,19 @@ async function createStoryOnShelf(shelf) {
   await writeLibrary(library);
   await openBook(meta.id);
 }
+// A book of one chapter set as a story, or a story set as a book again.
+// Only book.json changes: the chapter files are not touched.
+async function stConvert(meta, toStory) {
+  const m = await window.neo.readBookMeta(meta.id);
+  if (!m) return;
+  if (toStory) {
+    m.format = 'story';
+    if (!m.storyFont) m.storyFont = 'times';
+  } else delete m.format; // the font and keywords stay, for a way back
+  await writeBookMeta(m.id, m);
+  renderShelves();
+  toast(toStory ? t('“{title}” is a short story now, in manuscript format', { title: m.title }) : t('“{title}” is a book now', { title: m.title }));
+}
 // a manuscript on the shelf: a white page, its corner block and title typed,
 // held with a paper clip
 function storyTile(el, meta) {
@@ -10940,6 +10972,7 @@ async function addImportedBooks(results, shelf) {
   shelf = shelf || shelvesFor(currentAuthor().id)[0] || library.shelves[0];
   let ok = 0;
   let scripts = 0;
+  let stories = 0;
   for (const r of results) {
     if (r.error) { toast(t('Couldn’t import {name}: {error}', { name: r.name, error: r.error }), 6000); continue; }
     if (r.script) {
@@ -10954,6 +10987,14 @@ async function addImportedBooks(results, shelf) {
       title: r.title || r.name
     });
     meta.title = r.title || r.name;
+    // a story in manuscript format stays one: one piece, in its own face
+    if (r.story) {
+      stories++;
+      meta.format = 'story';
+      meta.storyFont = r.font === 'courier' ? 'courier' : 'times';
+      // the contact block is the writer's: one carried in fills it only when it's still empty
+      if (r.contact && !library.scriptContact) library.scriptContact = r.contact;
+    }
     meta.tabNames = {
       notes: (library.tabDefaults && library.tabDefaults.notes) || 'Notes',
       outline: (library.tabDefaults && library.tabDefaults.outline) || 'Outline'
@@ -10984,7 +11025,8 @@ async function addImportedBooks(results, shelf) {
   }
   await writeLibrary(library);
   if (!$('#bookshelf-view').hidden) renderShelves();
-  if (ok) toast(t('{n} books imported onto “{shelf}” — chapters and scene breaks detected', { n: ok, shelf: shelf.name }), 6000);
+  if (ok && stories === ok) toast(t('{n} stories imported onto “{shelf}”, in manuscript format', { n: ok, shelf: shelf.name }), 6000);
+  else if (ok) toast(t('{n} books imported onto “{shelf}” — chapters and scene breaks detected', { n: ok, shelf: shelf.name }), 6000);
   else if (scripts) toast(t('{n} scripts imported onto “{shelf}”', { n: scripts, shelf: shelf.name }), 6000);
 }
 

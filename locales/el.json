@@ -619,5 +619,38 @@
   "Replace with": "Αντικατάσταση με",
   "Replace": "Αντικατάσταση",
   "All": "Όλα",
-  "Close (Esc)": "Κλείσιμο (Esc)"
+  "Close (Esc)": "Κλείσιμο (Esc)",
+  "“{title}” is a book now": "Το «{title}» είναι πλέον βιβλίο",
+  "“{title}” is a short story now, in manuscript format": "Το «{title}» είναι πλέον διήγημα, σε μορφή χειρογράφου",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "Εισήχθη {n} διήγημα στο ράφι «{shelf}», σε μορφή χειρογράφου",
+    "other": "Εισήχθησαν {n} διηγήματα στο ράφι «{shelf}», σε μορφή χειρογράφου"
+  },
+  "+ Section": "+ Ενότητα",
+  "about {n} words": {
+    "one": "περίπου {n} λέξη",
+    "other": "περίπου {n} λέξεις"
+  },
+  "Blank: from the title": "Κενό: από τον τίτλο",
+  "by": "Γράφει:",
+  "Change the running head": "Αλλαγή κεφαλίδας σελίδας",
+  "END": "ΤΕΛΟΣ",
+  "flash fiction": "μικροδιήγημα",
+  "Legal name, address, phone, email": "Πραγματικό όνομα, διεύθυνση, τηλέφωνο, email",
+  "Make it a book": "Να γίνει βιβλίο",
+  "Make it a short story": "Να γίνει διήγημα",
+  "Manuscript Font": "Γραμματοσειρά χειρογράφου",
+  "Manuscript PDF (.pdf)": "Χειρόγραφο σε PDF (.pdf)",
+  "Manuscript Word (.docx)": "Χειρόγραφο σε Word (.docx)",
+  "New Story": "Νέο διήγημα",
+  "novel length": "έκταση μυθιστορήματος",
+  "novelette": "νουβελέτα",
+  "novella": "νουβέλα",
+  "Rounded the way editors read it": "Στρογγυλεμένο όπως το διαβάζουν οι επιμελητές",
+  "Running head keywords": "Λέξεις-κλειδιά κεφαλίδας",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Ξανά ως βιβλίο: κεφάλαια, εξώφυλλο, οι εξαγωγές βιβλίου. Το κείμενο μένει όπως είναι.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "Σε μορφή χειρογράφου, έτοιμο για υποβολή. Το κείμενο μένει όπως είναι.",
+  "short story": "διήγημα",
+  "Story": "Διήγημα",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Το χειρόγραφο σε Word, ή σε κείμενο, Markdown ή HTML, μέσω του φύλλου κοινής χρήσης."
 }

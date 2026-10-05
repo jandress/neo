@@ -681,5 +681,38 @@
   "Write in a new paragraph below or above": "Scrivi in un nuovo paragrafo sotto o sopra",
   "Select": "Seleziona",
   "Move to stretch it, then y to copy or d to cut.": "Muoviti per estenderla, poi y per copiare o d per tagliare.",
-  "Delete the letter under the caret": "Elimina la lettera sotto il cursore"
+  "Delete the letter under the caret": "Elimina la lettera sotto il cursore",
+  "“{title}” is a book now": "«{title}» ora è un libro",
+  "“{title}” is a short story now, in manuscript format": "«{title}» ora è un racconto, in formato manoscritto",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} racconto importato su «{shelf}», in formato manoscritto",
+    "other": "{n} racconti importati su «{shelf}», in formato manoscritto"
+  },
+  "+ Section": "+ Sezione",
+  "about {n} words": {
+    "one": "circa {n} parola",
+    "other": "circa {n} parole"
+  },
+  "Blank: from the title": "Vuoto: dal titolo",
+  "by": "di",
+  "Change the running head": "Cambia la testatina",
+  "END": "FINE",
+  "flash fiction": "flash fiction",
+  "Legal name, address, phone, email": "Nome anagrafico, indirizzo, telefono, email",
+  "Make it a book": "Rendilo un libro",
+  "Make it a short story": "Rendilo un racconto",
+  "Manuscript Font": "Carattere del manoscritto",
+  "Manuscript PDF (.pdf)": "Manoscritto in PDF (.pdf)",
+  "Manuscript Word (.docx)": "Manoscritto in Word (.docx)",
+  "New Story": "Nuovo racconto",
+  "novel length": "lunghezza da romanzo",
+  "novelette": "racconto lungo",
+  "novella": "romanzo breve",
+  "Rounded the way editors read it": "Arrotondato come lo leggono le redazioni",
+  "Running head keywords": "Parole chiave della testatina",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Di nuovo impaginato come libro: capitoli, copertina, le esportazioni del libro. Il testo resta com’è.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "Impaginato in formato manoscritto, pronto da inviare. Il testo resta com’è.",
+  "short story": "racconto",
+  "Story": "Racconto",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Il manoscritto in Word, o in testo, Markdown o HTML, dal foglio di condivisione."
 }

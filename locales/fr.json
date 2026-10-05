@@ -683,5 +683,38 @@
   "Write in a new paragraph below or above": "Écrire dans un nouveau paragraphe en dessous ou au-dessus",
   "Select": "Sélectionner",
   "Move to stretch it, then y to copy or d to cut.": "Déplacez-vous pour l’étendre, puis y pour copier ou d pour couper.",
-  "Delete the letter under the caret": "Supprimer la lettre sous le curseur"
+  "Delete the letter under the caret": "Supprimer la lettre sous le curseur",
+  "“{title}” is a book now": "« {title} » est maintenant un livre",
+  "“{title}” is a short story now, in manuscript format": "« {title} » est maintenant une nouvelle, au format manuscrit",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} nouvelle importée sur « {shelf} », au format manuscrit",
+    "other": "{n} nouvelles importées sur « {shelf} », au format manuscrit"
+  },
+  "+ Section": "+ Section",
+  "about {n} words": {
+    "one": "environ {n} mot",
+    "other": "environ {n} mots"
+  },
+  "Blank: from the title": "Vide : d’après le titre",
+  "by": "par",
+  "Change the running head": "Changer le titre courant",
+  "END": "FIN",
+  "flash fiction": "micronouvelle",
+  "Legal name, address, phone, email": "Nom légal, adresse, téléphone, e-mail",
+  "Make it a book": "En faire un livre",
+  "Make it a short story": "En faire une nouvelle",
+  "Manuscript Font": "Police du manuscrit",
+  "Manuscript PDF (.pdf)": "Manuscrit en PDF (.pdf)",
+  "Manuscript Word (.docx)": "Manuscrit en Word (.docx)",
+  "New Story": "Nouveau récit",
+  "novel length": "longueur de roman",
+  "novelette": "novelette",
+  "novella": "novella",
+  "Rounded the way editors read it": "Arrondi comme le lisent les éditeurs",
+  "Running head keywords": "Mots-clés du titre courant",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Remis en page comme un livre : chapitres, couverture, exports de livre. Le texte reste tel quel.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "Mis en page au format manuscrit, prêt à soumettre. Le texte reste tel quel.",
+  "short story": "nouvelle",
+  "Story": "Nouvelle",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Le manuscrit en Word, ou en texte, Markdown ou HTML, par la feuille de partage."
 }

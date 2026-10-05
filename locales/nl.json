@@ -678,5 +678,38 @@
   "Write in a new paragraph below or above": "Schrijven in een nieuwe alinea eronder of erboven",
   "Select": "Selecteren",
   "Move to stretch it, then y to copy or d to cut.": "Beweeg om ze te vergroten, dan y om te kopiëren of d om te knippen.",
-  "Delete the letter under the caret": "De letter onder de cursor verwijderen"
+  "Delete the letter under the caret": "De letter onder de cursor verwijderen",
+  "“{title}” is a book now": "‘{title}’ is nu een boek",
+  "“{title}” is a short story now, in manuscript format": "‘{title}’ is nu een kort verhaal, in manuscriptopmaak",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} verhaal geïmporteerd in ‘{shelf}’, in manuscriptopmaak",
+    "other": "{n} verhalen geïmporteerd in ‘{shelf}’, in manuscriptopmaak"
+  },
+  "+ Section": "+ Sectie",
+  "about {n} words": {
+    "one": "ongeveer {n} woord",
+    "other": "ongeveer {n} woorden"
+  },
+  "Blank: from the title": "Leeg: uit de titel",
+  "by": "door",
+  "Change the running head": "Paginakop wijzigen",
+  "END": "EINDE",
+  "flash fiction": "flashfictie",
+  "Legal name, address, phone, email": "Wettelijke naam, adres, telefoon, e-mail",
+  "Make it a book": "Maak er een boek van",
+  "Make it a short story": "Maak er een kort verhaal van",
+  "Manuscript Font": "Manuscriptlettertype",
+  "Manuscript PDF (.pdf)": "Manuscript als pdf (.pdf)",
+  "Manuscript Word (.docx)": "Manuscript als Word (.docx)",
+  "New Story": "Nieuw verhaal",
+  "novel length": "romanlengte",
+  "novelette": "novelette",
+  "novella": "novelle",
+  "Rounded the way editors read it": "Afgerond zoals redacties het lezen",
+  "Running head keywords": "Trefwoorden in de paginakop",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Weer als boek opgemaakt: hoofdstukken, een omslag, de boekexports. De tekst blijft zoals hij is.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "Opgemaakt als manuscript, klaar om in te sturen. De tekst blijft zoals hij is.",
+  "short story": "kort verhaal",
+  "Story": "Verhaal",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Het manuscript in Word, of als tekst, Markdown of HTML, via het deelmenu."
 }

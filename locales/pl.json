@@ -717,5 +717,42 @@
   "Write in a new paragraph below or above": "Pisz w nowym akapicie poniżej lub powyżej",
   "Select": "Zaznacz",
   "Move to stretch it, then y to copy or d to cut.": "Poruszaj się, by je rozszerzyć, potem y, by skopiować, lub d, by wyciąć.",
-  "Delete the letter under the caret": "Usuń literę pod kursorem"
+  "Delete the letter under the caret": "Usuń literę pod kursorem",
+  "“{title}” is a book now": "„{title}” jest teraz książką",
+  "“{title}” is a short story now, in manuscript format": "„{title}” jest teraz opowiadaniem, w formacie maszynopisu",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "Zaimportowano {n} opowiadanie na półkę „{shelf}”, w formacie maszynopisu",
+    "few": "Zaimportowano {n} opowiadania na półkę „{shelf}”, w formacie maszynopisu",
+    "many": "Zaimportowano {n} opowiadań na półkę „{shelf}”, w formacie maszynopisu",
+    "other": "Zaimportowano {n} opowiadania na półkę „{shelf}”, w formacie maszynopisu"
+  },
+  "+ Section": "+ Sekcja",
+  "about {n} words": {
+    "one": "około {n} słowo",
+    "few": "około {n} słowa",
+    "many": "około {n} słów",
+    "other": "około {n} słowa"
+  },
+  "Blank: from the title": "Puste: z tytułu",
+  "by": "autor:",
+  "Change the running head": "Zmień żywą paginę",
+  "END": "KONIEC",
+  "flash fiction": "szort",
+  "Legal name, address, phone, email": "Imię i nazwisko, adres, telefon, e-mail",
+  "Make it a book": "Zrób z tego książkę",
+  "Make it a short story": "Zrób z tego opowiadanie",
+  "Manuscript Font": "Czcionka maszynopisu",
+  "Manuscript PDF (.pdf)": "Maszynopis w PDF (.pdf)",
+  "Manuscript Word (.docx)": "Maszynopis w Wordzie (.docx)",
+  "New Story": "Nowe opowiadanie",
+  "novel length": "długość powieści",
+  "novelette": "nowela",
+  "novella": "mikropowieść",
+  "Rounded the way editors read it": "Zaokrąglone tak, jak czytają to redakcje",
+  "Running head keywords": "Słowa kluczowe żywej paginy",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Znów jako książka: rozdziały, okładka, eksporty książki. Tekst zostaje bez zmian.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "W formacie maszynopisu, gotowe do wysłania. Tekst zostaje bez zmian.",
+  "short story": "opowiadanie",
+  "Story": "Opowiadanie",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Maszynopis w Wordzie albo jako tekst, Markdown lub HTML, przez arkusz udostępniania."
 }

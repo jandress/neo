@@ -1100,6 +1100,45 @@ const CHAPTER_WORDS = new RegExp('^(' + [
 const PROLOGUE_WORDS = /^(prologue|prólogo|prologo|prolog|proloog)(?![\p{L}\d])/iu;
 const EPILOGUE_WORDS = /^(epilogue|épilogue|epílogo|epilogo|epilog|epiloog)(?![\p{L}\d])/iu;
 
+// ---- manuscript reader: a short story in standard manuscript format ----
+// Shunn's first page: a contact block (the word count at the right of its
+// first line, or on a line of its own), then the title, then "by" and the
+// byline, then the story. In a Word file the count's tab is lost, so it is
+// found at the end of a line, glued to the name or not. Both the count and
+// the byline must be there before a file is read as a story.
+const MS_WORDS = /(?:about|approx\.?|approximately|roughly|ca\.|~)?\s*\d[\d,.\u00a0\u202f ]*\s*words\.?$/i;
+const MS_BY = /^by\s+(.{2,80})$/i;
+const MS_END = /^(?:the\s+)?end\.?$|^(?:#\s*){3}$/i;
+function readManuscript(paras) {
+  const lines = paras.map((p) => ({ text: String(p.text || '').trim() }));
+  const plain = (t) => t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').trim();
+  const head = lines.slice(0, 24);
+  const at = head.findIndex((l) => MS_WORDS.test(plain(l.text)));
+  if (at < 0 || at > 6) return null;
+  // the byline: the first "by …" after the count, the title the line above it
+  let by = -1;
+  for (let k = at + 1; k < head.length; k++) if (MS_BY.test(plain(head[k].text))) { by = k; break; }
+  if (by < 0) return null;
+  let ti = by - 1;
+  while (ti > at && !plain(lines[ti].text)) ti--;
+  if (ti <= at) return null; // no title
+  const title = plain(lines[ti].text);
+  const contact = [];
+  for (let k = 0; k < ti; k++) {
+    const line = plain(lines[k].text);
+    const t = (k === at ? line.replace(MS_WORDS, '') : line).trim();
+    if (t) contact.push(t);
+  }
+  const body = paras.slice(by + 1).filter((p) => String(p.text || '').trim());
+  while (body.length && MS_END.test(plain(body[body.length - 1].text))) body.pop();
+  // a novel in manuscript format has the same first page; its chapters
+  // start on pages of their own, and it runs long. That stays a book.
+  if (body.filter((p) => p.pageBreak).length >= 2) return null;
+  if (body.reduce((n, p) => n + String(p.text).split(/\s+/).length, 0) >= 40000) return null;
+  return { title, author: plain(lines[by].text).match(MS_BY)[1].trim(), contact: contact.join('\n'), body };
+}
+// ---- end of manuscript reader ----
+
 async function importFile(fp) {
   const name = path.basename(fp).replace(/\.[^.]+$/, '');
   const ext = path.extname(fp).toLowerCase();
@@ -1120,6 +1159,18 @@ async function importFile(fp) {
     const styles = docxStyleFormats(stylesFile ? await stylesFile.async('string') : '');
     paras = [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)]
       .map((m) => docxParagraphToMarkdown(m[0], styles));
+    // a story in manuscript format comes in as a story: one piece, its
+    // contact block and byline lifted off the first page, in its face
+    const ms = readManuscript(paras);
+    if (ms) {
+      const stylesXml = stylesFile ? await stylesFile.async('string') : '';
+      const courier = /w:ascii="Courier/i.test(stylesXml + xml.slice(0, 4000));
+      const isBreak = (t) => /^\s*([*#•~⁂—–-]\s*){1,7}$/.test(t || '');
+      return {
+        name, story: true, title: ms.title, author: ms.author, contact: ms.contact, font: courier ? 'courier' : 'times',
+        chapters: [{ title: '', paras: ms.body.map((p) => (isBreak(p.text) ? { scene: true } : { text: p.text })) }]
+      };
+    }
   } else {
     const raw = fs.readFileSync(fp, 'utf8');
     paras = raw.split(/\r?\n\s*\r?\n/)

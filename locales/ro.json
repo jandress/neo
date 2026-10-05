@@ -712,5 +712,40 @@
   "Write in a new paragraph below or above": "Scrie într-un paragraf nou dedesubt sau deasupra",
   "Select": "Selectează",
   "Move to stretch it, then y to copy or d to cut.": "Deplasează-te ca s-o extinzi, apoi y pentru copiere sau d pentru tăiere.",
-  "Delete the letter under the caret": "Șterge litera de sub cursor"
+  "Delete the letter under the caret": "Șterge litera de sub cursor",
+  "“{title}” is a book now": "„{title}” este acum o carte",
+  "“{title}” is a short story now, in manuscript format": "„{title}” este acum o povestire, în format de manuscris",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} povestire importată în „{shelf}”, în format de manuscris",
+    "few": "{n} povestiri importate în „{shelf}”, în format de manuscris",
+    "other": "{n} de povestiri importate în „{shelf}”, în format de manuscris"
+  },
+  "+ Section": "+ Secțiune",
+  "about {n} words": {
+    "one": "circa {n} cuvânt",
+    "few": "circa {n} cuvinte",
+    "other": "circa {n} de cuvinte"
+  },
+  "Blank: from the title": "Gol: din titlu",
+  "by": "de",
+  "Change the running head": "Schimbă antetul",
+  "END": "SFÂRȘIT",
+  "flash fiction": "proză scurtă",
+  "Legal name, address, phone, email": "Nume legal, adresă, telefon, e-mail",
+  "Make it a book": "Fă-o carte",
+  "Make it a short story": "Fă-o povestire",
+  "Manuscript Font": "Fontul manuscrisului",
+  "Manuscript PDF (.pdf)": "Manuscris PDF (.pdf)",
+  "Manuscript Word (.docx)": "Manuscris Word (.docx)",
+  "New Story": "Povestire nouă",
+  "novel length": "lungime de roman",
+  "novelette": "nuveletă",
+  "novella": "nuvelă",
+  "Rounded the way editors read it": "Rotunjit cum îl citesc redactorii",
+  "Running head keywords": "Cuvinte-cheie din antet",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Din nou ca o carte: capitole, copertă, exporturile de carte. Textul rămâne cum este.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "În format de manuscris, gata de trimis. Textul rămâne cum este.",
+  "short story": "povestire",
+  "Story": "Povestire",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Manuscrisul în Word, sau ca text, Markdown sau HTML, din meniul de partajare."
 }

@@ -735,5 +735,42 @@
   "Write in a new paragraph below or above": "Писать в новом абзаце ниже или выше",
   "Select": "Выделить",
   "Move to stretch it, then y to copy or d to cut.": "Перемещайтесь, чтобы расширить выделение, затем y — копировать, d — вырезать.",
-  "Delete the letter under the caret": "Удалить букву под курсором"
+  "Delete the letter under the caret": "Удалить букву под курсором",
+  "“{title}” is a book now": "«{title}» теперь книга",
+  "“{title}” is a short story now, in manuscript format": "«{title}» теперь рассказ, в формате рукописи",
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} рассказ импортирован на полку «{shelf}», в формате рукописи",
+    "few": "{n} рассказа импортировано на полку «{shelf}», в формате рукописи",
+    "many": "{n} рассказов импортировано на полку «{shelf}», в формате рукописи",
+    "other": "{n} рассказа импортировано на полку «{shelf}», в формате рукописи"
+  },
+  "+ Section": "+ Раздел",
+  "about {n} words": {
+    "one": "около {n} слова",
+    "few": "около {n} слов",
+    "many": "около {n} слов",
+    "other": "около {n} слова"
+  },
+  "Blank: from the title": "Пусто: из названия",
+  "by": "автор:",
+  "Change the running head": "Изменить колонтитул",
+  "END": "КОНЕЦ",
+  "flash fiction": "микрорассказ",
+  "Legal name, address, phone, email": "Настоящее имя, адрес, телефон, эл. почта",
+  "Make it a book": "Сделать книгой",
+  "Make it a short story": "Сделать рассказом",
+  "Manuscript Font": "Шрифт рукописи",
+  "Manuscript PDF (.pdf)": "Рукопись в PDF (.pdf)",
+  "Manuscript Word (.docx)": "Рукопись в Word (.docx)",
+  "New Story": "Новый рассказ",
+  "novel length": "объём романа",
+  "novelette": "повесть",
+  "novella": "короткий роман",
+  "Rounded the way editors read it": "Округлено так, как читают редакторы",
+  "Running head keywords": "Ключевые слова колонтитула",
+  "Set as a book again: chapters, a cover, the book exports. The words stay as they are.": "Снова как книга: главы, обложка, экспорт книги. Текст остаётся как есть.",
+  "Set in manuscript format, ready to submit. The words stay as they are.": "В формате рукописи, готово к отправке. Текст остаётся как есть.",
+  "short story": "рассказ",
+  "Story": "Рассказ",
+  "The manuscript in Word, or Text, Markdown or HTML, through the share sheet.": "Рукопись в Word, или текстом, Markdown или HTML, через меню «Поделиться»."
 }

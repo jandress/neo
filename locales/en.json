@@ -53,5 +53,9 @@
   "Sprint ended — {n} words in {min} min": {
     "one": "Sprint ended — {n} word in {min} min",
     "other": "Sprint ended — {n} words in {min} min"
+  },
+  "{n} stories imported onto “{shelf}”, in manuscript format": {
+    "one": "{n} story imported onto “{shelf}”, in manuscript format",
+    "other": "{n} stories imported onto “{shelf}”, in manuscript format"
   }
 }

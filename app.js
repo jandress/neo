@@ -6204,8 +6204,11 @@ function stKeywords(title) {
   return two.join(' ');
 }
 // Surname / Keywords / page, leaving out what isn't there yet
+function stHead(byline, title, key) {
+  return [stSurname(byline), key || stKeywords(title)].filter(Boolean).join(' / ');
+}
 function stHeader(byline, title, page, key) {
-  return [stSurname(byline), key || stKeywords(title), String(page)].filter(Boolean).join(' / ');
+  return [stHead(byline, title, key), String(page)].filter(Boolean).join(' / ');
 }
 // The lines a story's text takes, read back from its height on the page,
 // where every page break before it adds a gap of `gap` (all in lines).
@@ -6231,6 +6234,128 @@ function stPageAt(down, gaps, gap) {
     if (rem < 0) return k + 2;
   }
   return gaps + 1;
+}
+// The manuscript as it leaves NEO, from plain data, so the tests can read
+// it: { font: 'times'|'courier', contact, words (the count's line), title,
+// byline (with its "by"), head (Surname / Keywords, the page added after),
+// end ('END'), paras: [{ sceneBreak, runs: [{text, b, i, u, s}], align,
+// poetry, flush }] }
+const stXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const stCss = (s) => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ') + '"';
+const ST_WORD_FONT = { times: 'Times New Roman', courier: 'Courier New' };
+function stRunsHtml(runs) {
+  return runs.map((r) => {
+    let x = stXml(r.text);
+    if (r.s) x = '<s>' + x + '</s>';
+    if (r.u) x = '<u>' + x + '</u>';
+    if (r.i) x = '<i>' + x + '</i>';
+    if (r.b) x = '<b>' + x + '</b>';
+    return x;
+  }).join('');
+}
+// The PDF: one flow of double-spaced lines that the printer breaks into
+// pages, 27 to a page as on screen (no widow or orphan control, so it
+// breaks where the screen does), and the running head in the page's own
+// top-right margin box, left off page one
+function stPdfHtml(m, fonts = '') {
+  const face = m.font === 'courier' ? "'Courier Prime', 'Courier New', Courier, monospace" : "'Tinos', 'Times New Roman', Times, serif";
+  const body = m.paras.map((p) => {
+    if (p.sceneBreak) return '<p class="brk">#</p>';
+    const cls = p.poetry ? 'poetry' : p.flush ? 'flush' : '';
+    const align = p.align === 'center' || p.align === 'right' ? p.align : '';
+    return `<p${cls ? ` class="${cls}"` : ''}${align ? ` style="text-align:${align};text-indent:0"` : ''}>${stRunsHtml(p.runs) || '&nbsp;'}</p>`;
+  }).join('');
+  const lines = (s) => stXml(s || '').replace(/\n/g, '<br>');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${stXml(m.title)}</title><style>
+${fonts}
+@page { size: 8.5in 11in; margin: 1in;
+  @top-right { content: ${stCss(m.head ? m.head + ' / ' : '')} counter(page); vertical-align: middle; font-family: ${face}; font-size: 12pt; } }
+@page :first { @top-right { content: none; } }
+html, body { margin: 0; padding: 0; background: #fff; }
+body { font-family: ${face}; font-size: 12pt; line-height: 24pt; color: #000; }
+p { margin: 0; text-indent: 0.5in; white-space: pre-wrap; overflow-wrap: break-word; widows: 1; orphans: 1; }
+p.flush { text-indent: 0; }
+p.poetry { text-indent: 0; margin: 0 0.5in; }
+p.brk, p.end { text-indent: 0; text-align: center; }
+.first { position: relative; height: 336pt; }
+.contact { position: absolute; top: 0; left: 0; width: 4.5in; line-height: 12pt; }
+.words { position: absolute; top: 0; right: 0; line-height: 12pt; text-align: right; }
+.title { position: absolute; top: 264pt; left: 0; right: 0; text-align: center; }
+.byline { position: absolute; top: 288pt; left: 0; right: 0; text-align: center; }
+</style></head><body><div class="first"><div class="contact">${lines(m.contact)}</div><div class="words">${stXml(m.words)}</div>
+<div class="title">${stXml(m.title)}</div><div class="byline">${stXml(m.byline)}</div></div>${body}<p class="end">${stXml(m.end || 'END')}</p></body></html>`;
+}
+// The Word file: the same page in Word's own terms. Every line exactly
+// 24 points, the first-line indent half an inch, the head a header with a
+// PAGE field, and a different first page so page one has none.
+function stDocxEntries(m) {
+  const font = ST_WORD_FONT[m.font] || ST_WORD_FONT.times;
+  const run = (r) => {
+    const rPr = (r.b ? '<w:b/>' : '') + (r.i ? '<w:i/>' : '') + (r.s ? '<w:strike/>' : '') + (r.u ? '<w:u w:val="single"/>' : '');
+    return `<w:r>${rPr ? '<w:rPr>' + rPr + '</w:rPr>' : ''}<w:t xml:space="preserve">${stXml(r.text)}</w:t></w:r>`;
+  };
+  const para = (runs, { align, indent = true, single, before, poetry, tabs } = {}) => {
+    const pPr = (tabs ? `<w:tabs><w:tab w:val="right" w:pos="${tabs}"/></w:tabs>` : '')
+      + `<w:spacing w:before="${before || 0}" w:after="0" w:line="${single ? 240 : 480}" w:lineRule="exact"/>`
+      + (poetry ? '<w:ind w:left="720" w:right="720"/>' : indent ? '<w:ind w:firstLine="720"/>' : '')
+      + (align ? `<w:jc w:val="${align}"/>` : '');
+    return `<w:p><w:pPr>${pPr}</w:pPr>${runs}</w:p>`;
+  };
+  const text = (s) => run({ text: s });
+  const body = [];
+  // the contact block, single-spaced, the count at the right of its first line
+  const contact = String(m.contact || '').split('\n');
+  contact.forEach((line, k) => {
+    const words = k === 0 ? '<w:r><w:tab/></w:r>' + text(m.words) : '';
+    body.push(para(text(line) + words, { indent: false, single: true, tabs: k === 0 ? 9360 : 0 }));
+  });
+  // the title on line 12 of the page (11 double lines down), the byline under it
+  const down = Math.max(240, 11 * 480 - contact.length * 240);
+  body.push(para(text(m.title), { align: 'center', indent: false, before: down }));
+  body.push(para(text(m.byline), { align: 'center', indent: false }));
+  body.push(para('', { indent: false }));
+  for (const p of m.paras) {
+    if (p.sceneBreak) { body.push(para(text('#'), { align: 'center', indent: false })); continue; }
+    const align = p.align === 'center' || p.align === 'right' ? p.align : '';
+    body.push(para(p.runs.map(run).join(''), { align, indent: !align && !p.flush && !p.poetry, poetry: p.poetry }));
+  }
+  body.push(para(text(m.end || 'END'), { align: 'center', indent: false }));
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document ${W} ${R}><w:body>${body.join('')}
+<w:sectPr><w:headerReference w:type="default" r:id="rId2"/><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/><w:titlePg/></w:sectPr>
+</w:body></w:document>`;
+  const headerXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:hdr ${W}><w:p><w:pPr><w:jc w:val="right"/></w:pPr>${m.head ? text(m.head + ' / ') : ''}<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>2</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p></w:hdr>`;
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles ${W}>
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}" w:eastAsia="${font}"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:rPrDefault>
+<w:pPrDefault><w:pPr><w:widowControl w:val="0"/><w:spacing w:after="0" w:line="480" w:lineRule="exact"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+</w:styles>`;
+  return [
+    { path: '[Content_Types].xml', content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+</Types>` },
+    { path: '_rels/.rels', content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>` },
+    { path: 'word/_rels/document.xml.rels', content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
+</Relationships>` },
+    { path: 'word/document.xml', content: documentXml },
+    { path: 'word/styles.xml', content: stylesXml },
+    { path: 'word/header1.xml', content: headerXml }
+  ];
 }
 // ---- end of story rules ----
 
@@ -6461,6 +6586,73 @@ function storyTile(el, meta) {
   tEl.classList.toggle('long', title.length > 36);
   el.querySelector('.sy-author').textContent = meta.author ? t('by') + ' ' + meta.author : '';
   el.style.setProperty('--sy-font', ST_FONTS[stFont(meta)]);
+}
+
+// ---- out of NEO: the manuscript as PDF or Word, in manuscript format ----
+// the open story, as stPdfHtml and stDocxEntries take it
+function stManuscript() {
+  const n = bookWordCount();
+  const r = stRoundWords(n);
+  const title = isUntitled(book.title) ? t('Untitled') : book.title;
+  const paras = [];
+  for (const chId of book.chapterOrder) {
+    const el = document.querySelector(`.chapter[data-id="${chId}"] .chapter-body`);
+    for (const p of parasFromHtml(el ? el.innerHTML : (chapterHTML[chId] || ''))) {
+      paras.push({ sceneBreak: p.sceneBreak, runs: p.sceneBreak ? [] : paraRuns(p.html), align: p.align, poetry: p.poetry, flush: p.flush });
+    }
+  }
+  // no break before the first line or after the last
+  while (paras.length && paras[0].sceneBreak) paras.shift();
+  while (paras.length && paras[paras.length - 1].sceneBreak) paras.pop();
+  return {
+    font: stFont(),
+    contact: library.scriptContact || '',
+    words: n < 100 ? t('{n} words', { n: r }) : t('about {n} words', { n: r }),
+    title,
+    byline: book.author ? t('by') + ' ' + book.author : '',
+    head: stHead(book.author, isUntitled(book.title) ? '' : book.title, book.storyHeader || ''),
+    end: t('END'),
+    paras
+  };
+}
+// the story's face travels inside the PDF
+async function stFontFaces() {
+  const family = stFont() === 'courier' ? 'Courier Prime' : 'Tinos';
+  let css = '';
+  for (const sheet of document.styleSheets) {
+    let rules = [];
+    try { rules = [...sheet.cssRules]; } catch { continue; }
+    for (const r of rules) {
+      if (!(r instanceof CSSFontFaceRule)) continue;
+      if (r.style.getPropertyValue('font-family').replace(/["']/g, '').trim() !== family) continue;
+      const src = r.style.getPropertyValue('src').match(/url\(["']?([^"')]+)["']?\)/);
+      if (!src) continue;
+      try {
+        const bytes = new Uint8Array(await (await fetch(new URL(src[1], sheet.href || location.href))).arrayBuffer());
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        const range = r.style.getPropertyValue('unicode-range');
+        css += `@font-face { font-family: '${family}'; src: url(data:font/woff2;base64,${btoa(bin)}) format('woff2'); font-weight: ${r.style.getPropertyValue('font-weight') || 400}; font-style: ${r.style.getPropertyValue('font-style') || 'normal'};${range ? ` unicode-range: ${range};` : ''} }\n`;
+      } catch { /* the PDF falls back on Times or Courier */ }
+    }
+  }
+  return css;
+}
+async function stPdf() { return stPdfHtml(stManuscript(), await stFontFaces()); }
+// PDF and Word leave in manuscript format; the other formats are a book's
+async function stExport(format) {
+  flushAllSaves();
+  const defaultName = safeName(book.title);
+  try {
+    const payload = format === 'pdf'
+      ? { format: 'pdf', defaultName, content: await stPdf(), print: 'manuscript' }
+      : { format: 'docx', defaultName, zipEntries: stDocxEntries(stManuscript()) };
+    const saved = await window.neo.exportSave(payload);
+    if (saved) toast(t('Exported: {file}', { file: saved.split('/').pop() }));
+  } catch (err) {
+    window.neo.logError('export ' + format + ': ' + (err && err.stack || err));
+    toast(t('Couldn’t export: {error}', { error: plainError(err) }), 8000);
+  }
 }
 
 /* ================================================================== */
@@ -13037,6 +13229,8 @@ async function doExport(format, chId = null) {
   if (!book) { toast(t('Open a book first')); return; }
   // a script leaves as a PDF set the way scripts print, or as Fountain
   if (isScript()) { await spExport(['pdf', 'fdx'].includes(format) ? format : 'fountain'); return; }
+  // a story's PDF and Word file go out in manuscript format
+  if (isShortStory() && !chId && (format === 'pdf' || format === 'docx')) { await stExport(format); return; }
   flushAllSaves();
   const one = chId ? chapterExportData(chId) : null;
   if (chId && !one) return;
@@ -13130,8 +13324,8 @@ async function doEmailDraft() {
     subject,
     body,
     // the email snapshot is a provenance record (a script's, as it prints)
-    html: script ? await spPdfHtml() : buildHtml(snapshot, { stamp: true, fonts: await exportFontFaces(snapshot) }),
-    print: script ? 'screenplay' : undefined,
+    html: script ? await spPdfHtml() : isShortStory() ? await stPdf() : buildHtml(snapshot, { stamp: true, fonts: await exportFontFaces(snapshot) }),
+    print: script ? 'screenplay' : isShortStory() ? 'manuscript' : undefined,
     defaultName: safeName(book.title),
     method: library.emailMethod
   });

@@ -822,7 +822,8 @@ async function renderPDF(html, print) {
   const pdfWin = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
   // Letter is a North American habit; most of the world prints A4.
   const letterCountries = ['US', 'CA', 'MX', 'PH'];
-  const options = print === 'screenplay' ? SCREENPLAY_PRINT : {
+  // a story's manuscript sets its own letter page and margins too
+  const options = print === 'screenplay' || print === 'manuscript' ? SCREENPLAY_PRINT : {
     pageSize: letterCountries.includes(app.getLocaleCountryCode()) ? 'Letter' : 'A4',
     margins: { top: 1, bottom: 1, left: 1, right: 1 },
     printBackground: false,
@@ -1728,8 +1729,9 @@ function buildMenu() {
             { label: t('Plain Text (.txt)'), click: () => sendToWindow({ type: 'export', format: 'txt' }) },
             { label: 'Markdown (.md)', click: () => sendToWindow({ type: 'export', format: 'md' }) },
             { label: t('Web Page (.html)'), click: () => sendToWindow({ type: 'export', format: 'html' }) },
-            { label: 'PDF (.pdf)', click: () => sendToWindow({ type: 'export', format: 'pdf' }) },
-            { label: 'Word (.docx)', click: () => sendToWindow({ type: 'export', format: 'docx' }) },
+            // a story's PDF and Word file are its manuscript
+            { label: storyState.on ? t('Manuscript PDF (.pdf)') : 'PDF (.pdf)', click: () => sendToWindow({ type: 'export', format: 'pdf' }) },
+            { label: storyState.on ? t('Manuscript Word (.docx)') : 'Word (.docx)', click: () => sendToWindow({ type: 'export', format: 'docx' }) },
             { label: 'EPUB (.epub)', click: () => sendToWindow({ type: 'export', format: 'epub' }) },
             { type: 'separator' },
             {

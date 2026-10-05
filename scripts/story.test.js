@@ -13,7 +13,7 @@ const to = app.indexOf('// ---- end of story rules ----');
 const context = vm.createContext({});
 vm.runInContext(app.slice(from, to), context);
 vm.runInContext(`this.api = { ST_LINES, ST_HEAD, stPages, stRoundWords, stCategory, stSurname, stKeywords,
-  stHeader, stLinesFromHeight, stPageAt };`, context);
+  stHeader, stHead, stLinesFromHeight, stPageAt, stPdfHtml, stDocxEntries };`, context);
 const st = context.api;
 
 test('a manuscript page holds 27 double-spaced lines; page one gives 14 to the title block', () => {
@@ -78,4 +78,54 @@ test('lines are read back from the page\'s height, less the gaps between pages',
   assert.equal(st.stPageAt(13 + 1, 2, gap), 2, 'in the gap: the page below');
   assert.equal(st.stPageAt(13 + gap + 26.9, 2, gap), 2);
   assert.equal(st.stPageAt(13 + gap + 27 + gap + 1, 2, gap), 3);
+});
+
+const sample = () => ({
+  font: 'times',
+  contact: 'Jo Writer\n1 Elm St\njo@example.com',
+  words: 'about 4,300 words',
+  title: 'The Harbor at Night',
+  byline: 'by J. A. Crow',
+  head: 'Crow / Harbor',
+  end: 'END',
+  paras: [
+    { runs: [{ text: 'It was <late>.' }] },
+    { sceneBreak: true, runs: [] },
+    { runs: [{ text: 'Then ' }, { text: 'morning', i: true }, { text: ' came.' }], align: 'justify' },
+    { runs: [{ text: 'A sign: CLOSED' }], align: 'center' }
+  ]
+});
+
+test('the PDF: Shunn\'s page, the running head left off page one', () => {
+  const html = st.stPdfHtml(sample(), '');
+  assert.match(html, /@page \{ size: 8\.5in 11in; margin: 1in;/);
+  assert.match(html, /@top-right \{ content: "Crow \/ Harbor \/ " counter\(page\)/);
+  assert.match(html, /@page :first \{ @top-right \{ content: none; \} \}/);
+  assert.match(html, /line-height: 24pt/);
+  assert.match(html, /Jo Writer<br>1 Elm St<br>jo@example\.com/);
+  assert.match(html, /<p>It was &lt;late&gt;\.<\/p><p class="brk">#<\/p>/, 'text escaped, the break a #');
+  assert.match(html, /<p>Then <i>morning<\/i> came\.<\/p>/, 'justified prose goes out ragged right');
+  assert.match(html, /<p style="text-align:center;text-indent:0">A sign: CLOSED<\/p>/);
+  assert.match(html, /<p class="end">END<\/p><\/body>/);
+  assert.match(st.stPdfHtml({ ...sample(), font: 'courier' }, ''), /font-family: 'Courier Prime'/);
+});
+
+test('the Word file: exact double spacing, a header with the page number, none on page one', () => {
+  const files = Object.fromEntries(st.stDocxEntries(sample()).map((e) => [e.path, e.content]));
+  const doc = files['word/document.xml'];
+  assert.match(doc, /<w:titlePg\/>/);
+  assert.match(doc, /<w:headerReference w:type="default" r:id="rId2"\/>/);
+  assert.match(doc, /w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720"/);
+  assert.match(doc, /Jo Writer<\/w:t><\/w:r><w:r><w:tab\/><\/w:r><w:r><w:t xml:space="preserve">about 4,300 words/, 'the count at the right of the first line');
+  assert.match(doc, /w:before="4560"/, 'the title eleven lines down, less the three of the contact block');
+  assert.match(doc, /w:line="480" w:lineRule="exact"\/><w:ind w:firstLine="720"\/><\/w:pPr><w:r><w:t xml:space="preserve">It was &lt;late&gt;\./);
+  assert.match(doc, /<w:r><w:rPr><w:i\/><\/w:rPr><w:t xml:space="preserve">morning/);
+  assert.match(doc, /<w:jc w:val="center"\/><\/w:pPr><w:r><w:t xml:space="preserve">#<\/w:t>/);
+  assert.ok(!/w:val="both"/.test(doc), 'nothing justified');
+  assert.match(files['word/header1.xml'], /Crow \/ Harbor \/ <\/w:t>.*PAGE/);
+  assert.match(files['word/styles.xml'], /w:ascii="Times New Roman"/);
+  assert.match(files['word/styles.xml'], /<w:widowControl w:val="0"\/>/);
+  assert.match(files['[Content_Types].xml'], /header1\.xml/);
+  const courier = Object.fromEntries(st.stDocxEntries({ ...sample(), font: 'courier' }).map((e) => [e.path, e.content]));
+  assert.match(courier['word/styles.xml'], /w:ascii="Courier New"/);
 });

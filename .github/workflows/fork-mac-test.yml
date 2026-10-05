@@ -1,0 +1,40 @@
+# Fork only: an unsigned test DMG of whatever this branch holds, built on
+# every push. It installs beside the real NEO (its own name, app id and
+# settings folder) and never looks to Hugh's releases for updates.
+# Not for upstream: this branch is story-format plus this file.
+
+name: Test DMG (fork)
+
+on:
+  push:
+    branches: [fork-build]
+  workflow_dispatch: {}
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm install electron-builder --save-dev
+      - name: Build an ad-hoc-signed DMG (no Apple certificate)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: >
+          npx electron-builder --mac dmg --arm64 --x64 --publish never
+          -c.appId=com.jandress.neo.storytest
+          -c.productName="NEO Story Test"
+          -c.extraMetadata.name=neo-story-test
+          -c.extraMetadata.productName="NEO Story Test"
+          -c.publish.owner=jandress
+          -c.mac.identity=-
+          -c.mac.notarize=false
+          -c.mac.hardenedRuntime=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neo-story-test-dmg
+          path: dist/*.dmg
+          retention-days: 14

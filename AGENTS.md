@@ -31,7 +31,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before adding a feature. The product is 
 | `locales/<code>.json` | One language. Regional files (`fr-CA.json`) hold only the strings that differ |
 | `pocket/` | Capacitor shell. It does not contain its own editor |
 
-`app.js` section banners look like `/*  SAVING  */`. Start there: bookshelf, bound shelves, editor open, typing, poetry, screenplays, placeholders, nav, tabs, outline, outline cards, darlings, counters, saving, refresh, structural undo, find, import, spellcheck, focus, goals, export.
+`app.js` section banners look like `/*  SAVING  */`. Start there: bookshelf, bound shelves, editor open, typing, poetry, screenplays, short stories, placeholders, nav, tabs, outline, outline cards, darlings, counters, saving, refresh, structural undo, find, import, spellcheck, focus, goals, export.
 
 Menus are built in `buildMenu()` in `main.js`. A menu click sends `{ type, ... }` to the window; `app.js` handles it on `window.neo.onMenu`.
 
@@ -59,6 +59,16 @@ A book whose `book.json` says `"format": "screenplay"` is a script. Right-click 
 - Lengths in `styles.css` are in em of the script's type (51em = 8.5in, 1em = one 12pt line), so a line wraps the same on screen, in the off-screen measuring room and in the PDF. `spPaginate` places the pages from the line counts.
 - A script exports as a PDF (letter, printed with `print: 'screenplay'`), Fountain or Final Draft (`.fdx`). The book formats don't apply.
 - A `.fountain` or `.fdx` file dropped on a shelf or picked with Import becomes a new script. `importFile` in `main.js` only reads the file; `spFromFountain` and `spFromFdx` in `app.js` sort it into elements. Both readers are plain string functions, so the tests cover them (`scripts/fixtures/` holds a Final Draft file written by screenplain, an outside tool).
+
+## Short stories
+
+A book whose `book.json` says `"format": "story"` is a short story, set in standard manuscript format (William Shunn's modern edition). Right-click (long-press) a shelf's + for New Story. The SHORT STORIES section of `app.js` holds the feature; `scripts/story.test.js` tests its rules.
+
+- The whole story is one chapter, as a script is. A third Enter after a break does not split it.
+- Lengths in `styles.css` are in em of the story's type (51em = 8.5in, a margin 6em, a line 2em): 27 lines to a page, and page one gives `ST_HEAD` of them to the title block. `stPages` places the pages from the line count.
+- Page breaks are floats in `.st-gaps`, a box just before the chapter body: a zero-width spacer a page of lines tall, then a gap as wide as the sheet that carries the running head. Lines that meet a gap move below it, even mid-paragraph, so nothing is ever inserted into the text. Each spacer takes a quarter-em to spare, because the engine rounds line heights up a hair.
+- None of the manuscript furniture is in the chapter file: the contact block is `library.scriptContact` (shared with scripts), the count is counted (`stRoundWords`), the title and byline are the book's, the head is drawn from them (`stHeader`; `book.storyHeader` overrides the keywords), and `#` and END are CSS.
+- `book.storyFont` is `times` (Tinos, metric-compatible with Times New Roman, so lines break the same) or `courier` (Courier Prime). Format → Manuscript Font, or right-click page one.
 
 ## Processes
 

@@ -1612,6 +1612,16 @@ ipcMain.on('script:state', (_e, st) => {
   scriptState = next;
   try { buildMenu(); } catch (err) { logError('menu', err); }
 });
+// A short story open in the window: the Format menu offers its two
+// manuscript faces in place of the book's fonts and drop caps
+let storyState = { on: false, font: null };
+ipcMain.on('story:state', (_e, st) => {
+  st = st || {};
+  const next = { on: !!st.on, font: ['times', 'courier'].includes(st.font) ? st.font : null };
+  if (next.on === storyState.on && next.font === storyState.font) return;
+  storyState = next;
+  try { buildMenu(); } catch (err) { logError('menu', err); }
+});
 let typewriterState = false;
 ipcMain.on('poetry:state', (_e, on) => {
   on = !!on;
@@ -1804,7 +1814,7 @@ function buildMenu() {
       label: t('Format'),
       submenu: [
         {
-          visible: !scriptState.on, // a script is set in Courier Prime
+          visible: !scriptState.on && !storyState.on, // a script is set in Courier Prime
           label: t('Body Font'),
           submenu: [
             ...bodyFonts.map((f) => ({
@@ -1818,7 +1828,7 @@ function buildMenu() {
           ]
         },
         {
-          visible: !scriptState.on,
+          visible: !scriptState.on && !storyState.on,
           label: t('Drop Cap Style'),
           submenu: [
             { label: t('Literary'), type: 'radio', checked: viewState.dropCap === 'literary', click: () => sendToWindow({ type: 'dropCap', value: 'literary' }) },
@@ -1826,6 +1836,15 @@ function buildMenu() {
             { label: t('Sci-Fi'), type: 'radio', checked: viewState.dropCap === 'scifi', click: () => sendToWindow({ type: 'dropCap', value: 'scifi' }) },
             { type: 'separator' },
             { label: t('Off'), type: 'radio', checked: viewState.dropCap === 'none', click: () => sendToWindow({ type: 'dropCap', value: 'none' }) }
+          ]
+        },
+        {
+          // a story goes out in Times or Courier, as editors ask
+          visible: storyState.on,
+          label: t('Manuscript Font'),
+          submenu: [
+            { label: 'Times New Roman', type: 'radio', checked: storyState.font !== 'courier', click: () => sendToWindow({ type: 'storyFont', value: 'times' }) },
+            { label: 'Courier', type: 'radio', checked: storyState.font === 'courier', click: () => sendToWindow({ type: 'storyFont', value: 'courier' }) }
           ]
         },
         {

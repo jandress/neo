@@ -908,10 +908,12 @@ async function renderShelves() {
         e.preventDefault();
         const pick = await popMenu(e.clientX, e.clientY, [
           { label: t('New Book'), value: 'book' },
-          { label: t('New Script'), value: 'script' }
+          { label: t('New Script'), value: 'script' },
+          { label: t('New Story'), value: 'story' }
         ], { from: blank });
         if (pick === 'book') createBookOnShelf(shelf);
         else if (pick === 'script') createScriptOnShelf(shelf);
+        else if (pick === 'story') createStoryOnShelf(shelf);
       });
     }
 
@@ -1619,7 +1621,7 @@ function coverMode(meta) {
 }
 
 function dressTile(el, meta) {
-  if (isScript(meta)) return; // a script wears its card (scriptTile)
+  if (isScript(meta) || isShortStory(meta)) return; // a script wears its card (scriptTile), a story its page (storyTile)
   el.classList.remove('has-cover');
   const mode = coverMode(meta);
   if (mode === 'image') {
@@ -1653,6 +1655,7 @@ function bookTile(meta, opts = {}) {
     <div class="b-progress" hidden><div></div></div>`;
   el.querySelector('.b-author').textContent = meta.author || '';
   if (isScript(meta)) scriptTile(el, meta);
+  else if (isShortStory(meta)) storyTile(el, meta);
   else {
     dressTile(el, meta);
     el.querySelector('.b-painting').hidden = !(meta.coverArt && meta.coverArt.status === 'pending');
@@ -1699,7 +1702,7 @@ function bookTile(meta, opts = {}) {
     let p = null;
     try { p = window.neo.pathForFile(e.dataTransfer.files[0]); } catch { /* no path */ }
     if (!p) return;
-    if (/\.(png|jpe?g|webp)$/i.test(p) && !isScript(meta)) {
+    if (/\.(png|jpe?g|webp)$/i.test(p) && !isScript(meta) && !isShortStory(meta)) {
       const fname = await window.neo.setCover(meta.id, p);
       if (fname) {
         meta.coverImage = fname;
@@ -1729,8 +1732,8 @@ function bookTile(meta, opts = {}) {
     }
     // no hover on a touch screen, so the ↻ that lives under the pointer
     // moves into the menu; picking an image file is a desktop affair
-    const script = isScript(meta);
-    if (script) { /* card stock: no cover to change */ } else if (NO_HOVER) options.push({ label: t('New cover'), desc: t('Another abstract cover for this book.'), value: 'refresh' });
+    const script = isScript(meta) || isShortStory(meta);
+    if (script) { /* card stock, or a manuscript page: no cover to change */ } else if (NO_HOVER) options.push({ label: t('New cover'), desc: t('Another abstract cover for this book.'), value: 'refresh' });
     else options.push({ label: meta.coverImage ? t('Replace cover art…') : t('Set cover art…'), desc: t('Pick an image (2:3 works best). Or just drag one from Finder onto the book.'), value: 'cover' });
     if (meta.coverImage && !script) {
       options.push({ label: t('Remove cover art'), desc: t('Deletes the image from the book folder. (To just hide it, use the ↻ on the book.)'), danger: true, value: 'uncover' });
@@ -1849,7 +1852,7 @@ const STALE_PAINT_MS = 10 * 60 * 1000; // a job that never came back
 
 function paintable(meta) {
   if (!meta || meta.coverImage) return false; // the writer's own art is never painted over
-  if (isScript(meta)) return false; // a script is card stock
+  if (isScript(meta) || isShortStory(meta)) return false; // a script is card stock, a story a manuscript
   if (meta.kind) return false; // a bound book's pages show no cover of their own
   if ((meta.wordCount || 0) < PAINT_AT) return false;
   const art = meta.coverArt;
@@ -2246,7 +2249,7 @@ async function openBook(bookId) {
   // Plotters land in the outline for a brand-new book
   const isNew = book.chapterOrder.length === 0;
   // a new script opens on its title page (it has no outline to open to)
-  const newScript = isScript() && isUntitled(book.title) && !bookWordCount();
+  const newScript = (isScript() || isShortStory()) && isUntitled(book.title) && !bookWordCount();
   if (isNew && library.writingStyle === 'plotter' && !isScript()) {
     switchTab('outline');
   } else {
@@ -2271,7 +2274,7 @@ async function openBook(bookId) {
   }
 
   // the Enter hint shows once per library, ever
-  if (!library.hintShown && !isScript()) {
+  if (!library.hintShown && !isScript() && !isShortStory()) {
     library.hintShown = true;
     writeLibrary(library);
     setTimeout(() => toast(t('Enter twice = section break · three times = new chapter · {key} shows everything else', { key: KHELP }), 7000), 800);
@@ -2365,6 +2368,8 @@ function renderChapters() {
     if (!story) body.classList.add('no-cap');
     // a script's lines are set as they print (styles.css, SCREENPLAYS)
     if (isScript()) body.classList.add('script-body', $('#paper').classList.contains('narrow') ? 'sp-narrow' : 'sp-geom', 'no-cap');
+    // a story's lines are set as they go out (styles.css, SHORT STORIES)
+    if (isShortStory()) body.classList.add('story-body', 'no-cap');
     body.innerHTML = chapterHTML[chId] || '<p><br></p>';
     markDialogueOpening(body);
     if (PAGE_PROMPTS[kind]) {
@@ -2410,6 +2415,10 @@ function renderChapters() {
     // Courier Prime has arrived, in case the first count was in another face
     spRepaginate();
     if (document.fonts) document.fonts.load('1em "Courier Prime"').then(() => spSchedule(0)).catch(() => {});
+  }
+  if (isShortStory()) {
+    stRepaginate();
+    if (document.fonts) document.fonts.load(`1em ${ST_FONTS[stFont()].split(',')[0]}`).then(() => stSchedule(0)).catch(() => {});
   }
   renderNav();
 }
@@ -2536,6 +2545,7 @@ function wireChapterBody(body, chId) {
   body.addEventListener('input', () => {
     breakRun = 0; // fresh typing: ⌘Z belongs to the engine again
     if (isScript()) scriptInput(body);
+    if (isShortStory()) stSchedule();
     markDialogueOpening(body);
     chapterHTML[chId] = captureBody(body);
     wordCache[chId] = null;
@@ -3218,6 +3228,7 @@ function handleEnter(e, body, chId) {
       if (prev.classList.contains('scene-break')) {
         // third Enter: everything from here becomes the next chapter
         e.preventDefault();
+        if (isShortStory()) return true; // a story is one chapter: the break stays a break
         snapshotStructure('chapter split');
         prev.remove();
         splitChapterAt(body, chId, block, sel);
@@ -3266,6 +3277,7 @@ function handleEnter(e, body, chId) {
   // Third Enter at end of flow: empty paragraph under a *** — chapter splits here
   if (prev && prev.classList.contains('scene-break')) {
     e.preventDefault();
+    if (isShortStory()) return true; // a story is one chapter: the break stays a break
     snapshotStructure('chapter split');
     prev.remove();
     splitChapterAt(body, chId, block, sel);
@@ -5826,6 +5838,7 @@ function spEditorMode() {
   if (add) add.hidden = on;
   if (!on) setText($('#nav-head span'), t('Chapters'));
   spTitlePage(on);
+  stEditorMode(); // or a story's
   // the pane stays open beside a script, unless the writer unpinned it there
   if (!NO_HOVER) {
     let kept = {};
@@ -6111,6 +6124,343 @@ function scriptTile(el, meta) {
   tEl.textContent = title;
   tEl.classList.toggle('long', title.length > 36);
   el.querySelector('.st-author').textContent = meta.author || '';
+}
+
+/* ================================================================== */
+/*  SHORT STORIES                                                      */
+/*  A short story is a book whose book.json says "format": "story".    */
+/*  It sits on the shelves like any book (right-click a shelf's + for  */
+/*  New Story) and is set the way it goes out to a magazine: standard  */
+/*  manuscript format, as William Shunn lays it out. Letter paper,     */
+/*  one-inch margins, 12-point Times or Courier, double-spaced, every  */
+/*  paragraph indented half an inch, # for a scene break, END at the   */
+/*  close. Page one carries the contact block, the word count rounded  */
+/*  the way editors read it, then the title and byline partway down;   */
+/*  every later page carries Surname / Keywords / page at the top.     */
+/*  The whole story is one chapter, one typing area, as a script is.   */
+/*  None of the manuscript furniture is in the story's file: the       */
+/*  contact block is the writer's (library.scriptContact, shared with  */
+/*  scripts), the count is counted, the title and byline are the       */
+/*  book's own, and the page breaks are floats in a sheet beside the   */
+/*  text (.st-gaps) that captureBody never sees.                       */
+/* ================================================================== */
+
+// ---- story rules: plain functions, no page (see scripts/story.test.js) ----
+// A double-spaced line of 12-point type is a third of an inch: nine inches
+// of text on a letter page hold 27 of them
+const ST_LINES = 27;
+// the lines page one gives to the contact block, the title and the byline:
+// the title stands a little under halfway down the page (Shunn: a third to
+// halfway), the byline on the next line, one blank line, then the story
+const ST_HEAD = 14;
+// the pages a story of this many lines fills, and how many lines the last
+// one uses (page one holds ST_LINES - ST_HEAD of them)
+function stPages(lines) {
+  const first = ST_LINES - ST_HEAD;
+  lines = Math.max(0, Math.round(lines));
+  if (lines <= first) return { pages: 1, last: lines + ST_HEAD };
+  const rest = lines - first;
+  const pages = 1 + Math.ceil(rest / ST_LINES);
+  return { pages, last: rest - (pages - 2) * ST_LINES };
+}
+// The count on page one, as editors read it: to the nearest hundred, and
+// to the nearest five hundred once a story nears novella length. A story
+// under a hundred words gives its count as it is.
+function stRoundWords(n) {
+  n = Math.max(0, Math.round(n || 0));
+  if (n < 100) return n;
+  const step = n >= 15000 ? 500 : 100;
+  return Math.max(step, Math.round(n / step) * step);
+}
+// what the length makes it, by the lines the awards draw (SFWA), with flash
+// for the shortest
+function stCategory(n) {
+  n = n || 0;
+  if (n < 1000) return 'flash';
+  if (n < 7500) return 'short story';
+  if (n < 17500) return 'novelette';
+  if (n < 40000) return 'novella';
+  return 'novel';
+}
+// the surname of the byline, for the running head: its last word, past a
+// Jr. or a III
+const ST_SUFFIX = /^(?:jr|sr|ii|iii|iv|v|phd|md|esq)\.?$/i;
+function stSurname(byline) {
+  const words = String(byline || '').replace(/,/g, ' ').trim().split(/\s+/).filter(Boolean);
+  while (words.length > 1 && ST_SUFFIX.test(words[words.length - 1])) words.pop();
+  return words.length ? words[words.length - 1] : '';
+}
+// one or two keywords of the title for the running head: the title itself
+// when it's short, otherwise its first two words past a leading article
+// (The Harbor at Night: Harbor; A Song for Ice: Song)
+const ST_ARTICLES = /^(?:the|a|an)$/i;
+const ST_SMALL = /^(?:a|an|the|and|or|but|nor|of|in|on|at|to|for|by|with|from|into|as|is)$/i;
+function stKeywords(title) {
+  const words = String(title || '').trim().split(/\s+/).filter(Boolean).map((w) => w.replace(/[,;:.!?]+$/, ''));
+  if (words.length <= 2) return words.join(' ');
+  const rest = ST_ARTICLES.test(words[0]) ? words.slice(1) : words;
+  const two = rest.slice(0, 2);
+  if (two.length === 2 && ST_SMALL.test(two[1])) two.pop();
+  return two.join(' ');
+}
+// Surname / Keywords / page, leaving out what isn't there yet
+function stHeader(byline, title, page, key) {
+  return [stSurname(byline), key || stKeywords(title), String(page)].filter(Boolean).join(' / ');
+}
+// The lines a story's text takes, read back from its height on the page,
+// where every page break before it adds a gap of `gap` (all in lines).
+// `gaps` is how many breaks the page carries now.
+function stLinesFromHeight(h, gaps, gap) {
+  let rem = h;
+  let lines = 0;
+  for (let k = 0; ; k++) {
+    const seg = k === 0 ? ST_LINES - ST_HEAD : ST_LINES;
+    if (k >= gaps || rem <= seg + 0.25) return Math.max(0, Math.round(lines + rem));
+    lines += seg;
+    rem -= seg + gap;
+  }
+}
+// which page a point lies on, `down` lines below the top of the text, with
+// `gaps` page breaks of `gap` lines each (a point in a gap is on the page below)
+function stPageAt(down, gaps, gap) {
+  let rem = down;
+  for (let k = 0; k < gaps; k++) {
+    const seg = k === 0 ? ST_LINES - ST_HEAD : ST_LINES;
+    if (rem < seg) return k + 1;
+    rem -= seg + gap;
+    if (rem < 0) return k + 2;
+  }
+  return gaps + 1;
+}
+// ---- end of story rules ----
+
+const isShortStory = (meta = book) => !!meta && meta.format === 'story';
+const ST_FONTS = { times: "'Tinos', 'Times New Roman', Times, serif", courier: "'Courier Prime', 'Courier New', Courier, monospace" };
+const stFont = (meta = book) => (meta && meta.storyFont === 'courier' ? 'courier' : 'times');
+const ST_CATEGORY = () => ({ flash: t('flash fiction'), 'short story': t('short story'), novelette: t('novelette'), novella: t('novella'), novel: t('novel length') });
+const ST_NARROW = window.matchMedia ? window.matchMedia('(max-width: 599px)') : { matches: false };
+
+let stLayout = { lines: 0, pages: 1, last: ST_HEAD };
+let stTimer = null;
+function stSchedule(ms = 160) {
+  clearTimeout(stTimer);
+  stTimer = setTimeout(stRepaginate, ms);
+}
+// The page breaks: a stack of floats ahead of the story's text, each a
+// zero-width spacer as tall as a page of lines and then a full-width gap
+// (the foot of one sheet, the room between, the head of the next with its
+// running header). Lines that meet a gap move below it, even in the middle
+// of a paragraph, so the text breaks where it will on paper while staying
+// one typing area. They sit outside the chapter body, so nothing of them
+// is ever saved.
+function stGaps(body, n) {
+  let box = body.previousElementSibling;
+  if (!box || !box.classList.contains('st-gaps')) {
+    box = document.createElement('div');
+    box.className = 'st-gaps';
+    box.contentEditable = 'false';
+    box.setAttribute('aria-hidden', 'true');
+    body.before(box);
+  }
+  const have = box.querySelectorAll('.st-gap').length;
+  if (have !== n) {
+    let html = '';
+    for (let k = 0; k < n; k++) {
+      const lines = k === 0 ? ST_LINES - ST_HEAD : ST_LINES;
+      // a quarter-em to spare: the engine rounds each line's height up a
+      // hair, and a line that touched the gap would be pushed under it
+      html += `<i class="st-sp" style="height:${lines * 2 + 0.25}em"></i><i class="st-gap"><span></span></i>`;
+    }
+    box.innerHTML = html;
+  }
+  const spans = box.querySelectorAll('.st-gap span');
+  const key = book.storyHeader || '';
+  spans.forEach((s, k) => setText(s, stHeader(book.author, isUntitled(book.title) ? '' : book.title, k + 2, key)));
+  return box;
+}
+function stRepaginate() {
+  clearTimeout(stTimer);
+  if (!book || !isShortStory() || !$('#paper').classList.contains('story')) return;
+  const bodies = $$('#chapters .chapter-body');
+  const body = bodies[0];
+  if (!body) return;
+  const narrow = $('#paper').classList.contains('narrow');
+  const live = !narrow && currentTab === 'manuscript' && !$('#paper').hidden && body.getBoundingClientRect().height > 0;
+  if (!live) { updateCounters(); return; }
+  const em = parseFloat(getComputedStyle(body).fontSize) || 16;
+  const line = 2 * em;
+  const gapPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-gap')) || 44;
+  const gap = (12 * em + gapPx) / line; // a gap, in lines
+  // everything after the first body (another device's copy, kept when both
+  // sides changed) runs on in the same lines
+  const height = () => {
+    const top = body.getBoundingClientRect().top;
+    const last = bodies[bodies.length - 1].getBoundingClientRect().bottom;
+    return (last - top) / line;
+  };
+  let box = body.previousElementSibling;
+  let gaps = box && box.classList.contains('st-gaps') ? box.querySelectorAll('.st-gap').length : 0;
+  let lines = stLinesFromHeight(height(), gaps, gap);
+  let pg = stPages(lines);
+  if (pg.pages - 1 !== gaps) {
+    box = stGaps(body, pg.pages - 1);
+    gaps = pg.pages - 1;
+    lines = stLinesFromHeight(height(), gaps, gap);
+    pg = stPages(lines);
+  } else stGaps(body, gaps);
+  $('#chapters').style.setProperty('--st-last', String(Math.max(0, ST_LINES - pg.last)));
+  stLayout = { lines, pages: pg.pages, last: pg.last, em, gap };
+  updateCounters();
+}
+// the page the caret is on: its height down the text, less the gaps above it
+function stCurrentPage() {
+  const body = $('#chapters .chapter-body');
+  const sel = window.getSelection();
+  if (!body || !stLayout.em) return 1;
+  let y = null;
+  if (sel.rangeCount && body.parentElement.parentElement.contains(sel.anchorNode)) {
+    const r = sel.getRangeAt(0).cloneRange();
+    r.collapse(true);
+    let rect = r.getClientRects()[0];
+    if (!rect) {
+      const el = sel.anchorNode.nodeType === Node.TEXT_NODE ? sel.anchorNode.parentElement : sel.anchorNode;
+      rect = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    }
+    if (rect) y = rect.top + rect.height / 2;
+  }
+  if (y === null) y = $('#paper-scroll').getBoundingClientRect().top + 40;
+  const line = 2 * stLayout.em;
+  const down = (y - body.getBoundingClientRect().top) / line;
+  if (down < 0) return 1;
+  return Math.min(stLayout.pages, stPageAt(down, stLayout.pages - 1, stLayout.gap));
+}
+function stCounters() {
+  const n = bookWordCount();
+  const cat = ST_CATEGORY()[stCategory(n)];
+  setText($('#word-counter'), t('{n} words', { n }) + ' · ' + cat);
+  setText($('#pos-counter'), t('page {p} of {total}', { p: stCurrentPage(), total: stLayout.pages }));
+  const words = $('#tp-words');
+  if (words) {
+    const r = stRoundWords(n);
+    setText(words, n < 100 ? t('{n} words', { n: r }) : t('about {n} words', { n: r }));
+  }
+}
+
+// ---- page one: the contact block and the count, beside the title ----
+function stTitlePage(on) {
+  for (const el of $$('#title-page .st-field')) el.remove();
+  if (!on) return;
+  const page = $('#title-page');
+  const contact = document.createElement('div');
+  contact.id = 'tp-contact';
+  contact.className = 'st-field';
+  contact.contentEditable = 'true';
+  contact.spellcheck = false;
+  contact.setAttribute('role', 'textbox');
+  contact.setAttribute('aria-multiline', 'true');
+  const ph = t('Legal name, address, phone, email');
+  contact.setAttribute('aria-label', ph);
+  contact.dataset.ph = ph;
+  contact.textContent = library.scriptContact || '';
+  contact.addEventListener('input', () => {
+    // the writer's block, the same on every story and script
+    library.scriptContact = contact.innerText.replace(/\n+$/, '');
+    clearTimeout(stTitlePage.t);
+    stTitlePage.t = setTimeout(() => writeLibrary(library), 800);
+  });
+  // Enter starts a new line of the block (a line break, not a paragraph)
+  contact.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertLineBreak'); } });
+  const words = document.createElement('div');
+  words.id = 'tp-words';
+  words.className = 'st-field';
+  words.title = t('Rounded the way editors read it');
+  page.prepend(contact, words);
+}
+
+// The look of the editor for a story, or back to a book's (called at the
+// end of spEditorMode, which sets a script's or a book's)
+function stEditorMode() {
+  const on = isShortStory();
+  const narrow = on && ST_NARROW.matches;
+  $('#paper').classList.toggle('story', on);
+  if (on) $('#paper').classList.toggle('narrow', narrow);
+  $('#editor-view').classList.toggle('story-mode', on);
+  $('#paper').style.setProperty('--st-font', ST_FONTS[stFont()]);
+  $('#paper').style.setProperty('--st-by', JSON.stringify(t('by') + ' '));
+  $('#paper').style.setProperty('--st-end', JSON.stringify(t('END')));
+  if (on) {
+    applyPageZoom();
+    const tabM = $('.tab[data-tab="manuscript"]');
+    if (tabM) setText(tabM, t('Story'));
+    const add = $('#nav-add');
+    if (add) add.hidden = true;
+  }
+  stTitlePage(on);
+  stReportState();
+}
+function stReportState() {
+  if (!window.neo.storyState) return;
+  const on = !!book && isShortStory() && !$('#editor-view').hidden;
+  window.neo.storyState({ on, font: on ? stFont() : null });
+}
+async function stSetFont(font) {
+  if (!book || !isShortStory() || !ST_FONTS[font] || stFont() === font) return;
+  book.storyFont = font;
+  scheduleMetaSave();
+  $('#paper').style.setProperty('--st-font', ST_FONTS[font]);
+  stReportState();
+  await (document.fonts ? document.fonts.load(`1em ${ST_FONTS[font].split(',')[0]}`).catch(() => {}) : null);
+  stSchedule(0);
+}
+// right-click (a long press) on page one: the manuscript's two faces, for
+// a phone that has no Format menu
+$('#title-page').addEventListener('contextmenu', async (e) => {
+  if (!book || !isShortStory()) return;
+  if (e.target.closest('[contenteditable="true"]') && !window.Capacitor) return; // the words' own menu
+  e.preventDefault();
+  const pick = await popMenu(e.clientX, e.clientY, [
+    { label: 'Times New Roman', value: 'times', checked: stFont() === 'times' },
+    { label: 'Courier', value: 'courier', checked: stFont() === 'courier' }
+  ], { title: t('Manuscript Font'), from: $('#title-page') });
+  if (pick) stSetFont(pick);
+});
+// the title and byline are in the running head
+for (const id of ['#tp-title', '#tp-author']) $(id).addEventListener('input', () => { if (book && isShortStory()) stSchedule(300); });
+if (ST_NARROW.addEventListener) {
+  ST_NARROW.addEventListener('change', () => { if (book && isShortStory() && !$('#editor-view').hidden) { const c = captureCaret(); stEditorMode(); renderChapters(); restoreCaret(c); } });
+}
+
+// ---- the shelf: a new story, and its tile ----
+async function createStoryOnShelf(shelf) {
+  const meta = await window.neo.createBook({ author: displayAuthor() });
+  const chId = 'ch-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+  await window.neo.writeChapter(meta.id, chId, '<p><br></p>');
+  meta.format = 'story';
+  meta.storyFont = 'times';
+  meta.chapterOrder = [chId];
+  meta.tabNames = {
+    notes: (library.tabDefaults && library.tabDefaults.notes) || 'Notes',
+    outline: (library.tabDefaults && library.tabDefaults.outline) || 'Outline'
+  };
+  await writeBookMeta(meta.id, meta);
+  await placeTitle(shelf, meta.id);
+  await writeLibrary(library);
+  await openBook(meta.id);
+}
+// a manuscript on the shelf: a white page, its corner block and title typed,
+// held with a paper clip
+function storyTile(el, meta) {
+  el.classList.add('story-tile');
+  el.innerHTML = `
+    <div class="sy-text"><div class="sy-lines"></div><div class="sy-title"></div><div class="sy-author"></div></div>
+    <span class="sy-clip"></span>
+    <div class="b-progress" hidden><div></div></div>`;
+  const title = isUntitled(meta.title) ? t('Untitled') : meta.title;
+  const tEl = el.querySelector('.sy-title');
+  tEl.textContent = title;
+  tEl.classList.toggle('long', title.length > 36);
+  el.querySelector('.sy-author').textContent = meta.author ? t('by') + ' ' + meta.author : '';
+  el.style.setProperty('--sy-font', ST_FONTS[stFont(meta)]);
 }
 
 /* ================================================================== */
@@ -7452,7 +7802,7 @@ function orderSectionNotes(chId) {
 const PAGE_ZOOM_RANGE = { min: 0.75, max: 3 };
 const CARD_ZOOM_RANGE = { min: 0.55, max: 1.5 };
 const CARD_ZOOM_KEY = 'neo.cardZoom';
-const pageZoomKey = () => 'neo.pageZoom.' + (isScript() ? 'script' : 'novel');
+const pageZoomKey = () => 'neo.pageZoom.' + (isScript() ? 'script' : isShortStory() ? 'story' : 'novel');
 
 /** The stored zoom, or the fallback, always inside the range. Split out so a test can hold it. */
 function resolveStoredZoom(raw, fallback, min, max) {
@@ -8984,7 +9334,7 @@ function hideWalkNote() {
 
 function walkNoteUpdate() {
   walkQueued = false;
-  if (!book || currentTab !== 'manuscript' || isScript()) { hideWalkNote(); return; }
+  if (!book || currentTab !== 'manuscript' || isScript() || isShortStory()) { hideWalkNote(); return; }
   const sel = window.getSelection();
   let el = sel.rangeCount ? sel.anchorNode : null;
   if (el && el.nodeType === Node.TEXT_NODE) el = el.parentElement;
@@ -9182,7 +9532,7 @@ function updateCounters() {
   if (!book) return;
   // a script is one long chapter: its words are counted when the typing
   // pauses, not at every key
-  if (isScript() && !updateCounters.now) {
+  if ((isScript() || isShortStory()) && !updateCounters.now) {
     clearTimeout(updateCounters.t);
     updateCounters.t = setTimeout(() => {
       updateCounters.now = true;
@@ -9193,6 +9543,7 @@ function updateCounters() {
   const total = bookWordCount();
   const wc = $('#word-counter');
   if (isScript()) spCounters();
+  else if (isShortStory()) stCounters();
   else updateBookCounters(total, wc);
   // cache for the bookshelf progress bar
   if (book.wordCount !== total) {
@@ -9300,6 +9651,7 @@ function currentPage(cur) {
 $('#pos-counter').onclick = () => {
   // a script's counter goes page ↔ scene
   if (book && isScript()) { spPosScene = !spPosScene; updateCounters(); return; }
+  if (book && isShortStory()) return; // a story counts its pages
   library.posMode = library.posMode === 'page' ? 'chapter' : 'page';
   writeLibrary(library);
   updateCounters();
@@ -12924,8 +13276,8 @@ async function showAbout() {
 async function setEditorFontSize(value) {
   // ⌘+ and ⌘− on the outline's cards make the cards larger and smaller
   if (boardShowing()) { stepCardZoom(value); return; }
-  // a script's type is the page's: larger and smaller zoom the page
-  if (book && isScript()) {
+  // a script's type is the page's: larger and smaller zoom the page (a story's too)
+  if (book && (isScript() || isShortStory())) {
     setPageZoom(value === 0 ? 1 : activePageZoom() * (value > 0 ? 1.1 : 1 / 1.1));
     return;
   }
@@ -12954,6 +13306,7 @@ window.neo.onMenu(async (msg) => {
   if (msg.type === 'update') updateMessage(msg);
   if (msg.type === 'export') doExport(msg.format);
   if (msg.type === 'scriptElement' && book && isScript()) spSetElement(msg.value);
+  if (msg.type === 'storyFont' && book && isShortStory()) stSetFont(msg.value);
   if (msg.type === 'markdownEmphasis') {
     if (msg.checked) delete library.markdownOff; else library.markdownOff = true;
     await writeLibrary(library);

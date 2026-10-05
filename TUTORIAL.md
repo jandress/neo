@@ -109,6 +109,23 @@ When it's done, **File → Export** makes a PDF formatted the way the industry e
 
 Everything else works in scripts too: Notes, Darlings, ⌘⇧X placeholders, goals and sprints, and ⌘E, which emails you a PDF of the script.
 
+
+**Writing a short story**
+
+Right-click the + on any shelf and choose **New Story** (press and hold on a phone). A story is set the way you'll submit it, in standard manuscript format: letter paper, one-inch margins, 12-point type, double-spaced, every paragraph indented half an inch. The pages on screen are the pages that print, breaking in the same places.
+
+Page one is laid out for you. Type your legal name, address, phone, and email in the top left once; every story (and script) uses the same block. The word count in the top right is rounded to the nearest hundred, the way editors want it, and keeps itself up to date. The title and byline sit a little under halfway down. The byline starts as your pen name if you have one; click it to change it.
+
+Then write. Enter twice makes a scene break, which shows as a # on its own line. A story is one piece, so a third Enter doesn't start a new chapter. At the end, END appears by itself; you don't type it.
+
+From page two on, the top right of every page reads Surname / Keyword / page. NEO takes the keyword from your title (The Harbor at Night becomes Harbor). Click any running head to choose different keywords.
+
+**Format → Manuscript Font** switches between Times New Roman and Courier (right-click page one on a phone). At the bottom, NEO shows your word count and what the length makes the story (flash fiction, short story, novelette, novella), and which page you're on.
+
+The Outline tab shows the story as cards, one per section, and + Section adds another.
+
+**File → Export** makes a manuscript PDF or Word file ready to send. The Word file has a real header, so an editor's changes won't knock the page numbers out of place. ⌘E emails you the manuscript PDF. A shelf of stories binds into a collection, each story under its own title.
+
 **Getting your book out**
 
 When your draft is done, the File menu exports to Word for your editor so they can track changes, or PDF, plain text, or Markdown. There's a proper **EPUB** option with a real table of contents built to Amazon's guidelines, but this is not highly tested yet, so use at your own risk!

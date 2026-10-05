@@ -4728,6 +4728,7 @@ function createChapterAt(idx) {
 }
 
 function newChapter() {
+  if (book && isShortStory()) return; // a story is one chapter: Enter twice makes a break
   // insert after the chapter you're in; at the end if you're not in one
   const idx = currentChapterId ? book.chapterOrder.indexOf(currentChapterId) + 1 : book.chapterOrder.length;
   const chId = createChapterAt(idx);
@@ -6400,8 +6401,34 @@ function stGaps(body, n) {
   }
   const spans = box.querySelectorAll('.st-gap span');
   const key = book.storyHeader || '';
-  spans.forEach((s, k) => setText(s, stHeader(book.author, isUntitled(book.title) ? '' : book.title, k + 2, key)));
+  spans.forEach((s, k) => {
+    setText(s, stHeader(book.author, isUntitled(book.title) ? '' : book.title, k + 2, key));
+    if (!s.title) s.title = t('Change the running head');
+  });
   return box;
+}
+// The keywords of the running head: the title's own unless the writer gives
+// others (a long title, or a first word that says nothing). Click any head.
+async function stEditHead() {
+  const auto = stKeywords(isUntitled(book.title) ? '' : book.title);
+  const v = await askInput(t('Running head keywords'), t('Blank: from the title'), book.storyHeader || auto);
+  if (v === null || v === undefined || !book || !isShortStory()) return;
+  const key = String(v).replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
+  if (key && key !== auto) book.storyHeader = key; else delete book.storyHeader;
+  scheduleMetaSave();
+  stSchedule(0);
+}
+$('#chapters').addEventListener('click', (e) => {
+  if (book && isShortStory() && e.target.closest && e.target.closest('.st-gap span')) stEditHead();
+});
+// The byline a new story starts with: the pen name the shelf is under, or
+// the writer's first pen name when the shelf is under their own name (a
+// manuscript's byline is the name it will be published under; the contact
+// block carries the legal one)
+function stByline() {
+  const name = displayAuthor();
+  const pen = (library.penNames || [])[0];
+  return pen && library.authorName && name === library.authorName ? pen : name;
 }
 function stRepaginate() {
   clearTimeout(stTimer);
@@ -6453,7 +6480,10 @@ function stCurrentPage() {
     }
     if (rect) y = rect.top + rect.height / 2;
   }
-  if (y === null) y = $('#paper-scroll').getBoundingClientRect().top + 40;
+  // no caret in the story, or one scrolled out of sight: the page in the
+  // middle of the window
+  const view = $('#paper-scroll').getBoundingClientRect();
+  if (y === null || y < view.top || y > view.bottom) y = view.top + view.height / 2;
   const line = 2 * stLayout.em;
   const down = (y - body.getBoundingClientRect().top) / line;
   if (down < 0) return 1;
@@ -6549,6 +6579,12 @@ $('#title-page').addEventListener('contextmenu', async (e) => {
   ], { title: t('Manuscript Font'), from: $('#title-page') });
   if (pick) stSetFont(pick);
 });
+// the page counter follows the reading as well as the caret
+$('#paper-scroll').addEventListener('scroll', () => {
+  if (!book || !isShortStory() || currentTab !== 'manuscript') return;
+  clearTimeout(stCounters.t);
+  stCounters.t = setTimeout(() => { if (book && isShortStory()) stCounters(); }, 120);
+});
 // the title and byline are in the running head
 for (const id of ['#tp-title', '#tp-author']) $(id).addEventListener('input', () => { if (book && isShortStory()) stSchedule(300); });
 if (ST_NARROW.addEventListener) {
@@ -6557,7 +6593,10 @@ if (ST_NARROW.addEventListener) {
 
 // ---- the shelf: a new story, and its tile ----
 async function createStoryOnShelf(shelf) {
-  const meta = await window.neo.createBook({ author: displayAuthor() });
+  const meta = await window.neo.createBook({ author: stByline() });
+  // the contact block starts with the writer's legal name, the first line
+  // Shunn asks for
+  if (!library.scriptContact && library.authorName) library.scriptContact = library.authorName;
   const chId = 'ch-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
   await window.neo.writeChapter(meta.id, chId, '<p><br></p>');
   meta.format = 'story';
@@ -7942,7 +7981,7 @@ function removeGhost(body, p) {
 /*  A script's cards are its scenes (book.sceneNotes holds their notes). */
 /* ================================================================== */
 
-const outlineCardsOn = () => !!book && (isScript() || (library.outlineView || 'cards') === 'cards');
+const outlineCardsOn = () => !!book && (isScript() || isShortStory() || (library.outlineView || 'cards') === 'cards');
 const chapterBodyEl = (chId) => document.querySelector(`.chapter[data-id="${chId}"] .chapter-body`);
 const newSectionId = () => 'sec-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
@@ -8117,7 +8156,7 @@ function viewSwitch() {
 function showOutlineView() {
   const sw = viewSwitch();
   const cards = outlineCardsOn();
-  sw.hidden = !book || isScript(); // a script has only the cards
+  sw.hidden = !book || isScript() || isShortStory(); // a script has only the cards, and a story
   for (const b of sw.querySelectorAll('button')) {
     const on = b.dataset.view === (cards ? 'cards' : 'list');
     b.classList.toggle('on', on);
@@ -8231,8 +8270,15 @@ function boardAddCard(board) {
   add.type = 'button';
   add.className = 'ob-add';
   const script = isScript();
-  add.textContent = script ? t('+ Scene') : t('+ Chapter');
+  const story = isShortStory();
+  add.textContent = script ? t('+ Scene') : story ? t('+ Section') : t('+ Chapter');
   add.addEventListener('click', () => {
+    // a story is one chapter: the board's last card gets a section after it
+    if (story) {
+      const cells = [...board.querySelectorAll('.ob-cell[data-kind="section"], .ob-cell[data-kind="chapter"]')];
+      if (cells.length) newCardAfter(cells[cells.length - 1]);
+      return;
+    }
     if (script) {
       const cells = [...board.querySelectorAll('.ob-cell[data-kind="scene"]')];
       const last = cells[cells.length - 1];
@@ -8608,6 +8654,7 @@ function newCardAfter(cell) {
 
 // a new chapter at this place in the book, its card open to write on
 function newChapterCard(at) {
+  if (book && isShortStory()) return; // a story is one chapter
   closeCardEditor();
   snapshotStructure('card new chapter');
   const newId = createChapterAt(at);

@@ -2029,8 +2029,9 @@ body.night #paper.story { box-shadow: 0 4px 30px rgba(0,0,0,0.7); }
 .st-gaps .st-gap span {
   position: absolute; right: calc(6em + 40px); top: calc(var(--foot) + var(--sp-gap) + 2.5em);
   font-family: var(--st-font); font-size: 1em; line-height: 1em; font-style: normal; white-space: nowrap;
-  color: var(--ink);
+  color: var(--ink); pointer-events: auto; cursor: pointer; border-radius: 2px;
 }
+.st-gaps .st-gap span:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
 
 /* --- page one: the contact block and the count at the top, the title
    and byline partway down (ST_HEAD lines of it), then the story --- */

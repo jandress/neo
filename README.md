@@ -71,6 +71,10 @@ You never have to pick a formatting element. Start a line with INT. or EXT. and 
 
 Export an industry-format PDF, or a Fountain or Final Draft (.fdx) file. Drop a .fountain or .fdx file on a shelf to import a script. Notes, Darlings, placeholders, sprints, and NEO Pocket all work the same as they do for books.
 
+**Short stories, ready to submit**
+
+Right-click the + on any shelf and choose **New Story**. A story sits on the shelf as a manuscript page with a paper clip, and inside it's set in standard manuscript format, the way magazines and anthologies ask for it (William Shunn's modern edition): Times or Courier at 12 points, double-spaced, one-inch margins, real pages. Page one carries your contact block, the word count rounded the way editors read it, and the title and byline partway down; every page after it carries Surname / Keyword / page at the top. A scene break is a #, and the story ends with END. Export a manuscript PDF or Word file and it's ready to send. A shelf of stories binds into a collection like any other shelf.
+
 **Exports** 
 
 EPUB 3 with a proper table of contents built to KDP's guidelines, Word .docx, PDF with page numbers and bookmarks, HTML, markdown, and plain text. Email a timestamped PDF snapshot to yourself with a SHA-256 fingerprint of the text in the body. Might come in handy someday.

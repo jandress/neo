@@ -1923,6 +1923,12 @@ function buildMenu() {
           checked: vimState,
           click: () => sendToWindow({ type: 'vim' })
         },
+        {
+          label: t('Word Counts on the Shelf'),
+          type: 'checkbox',
+          checked: readJSON(LIBRARY_FILE, {}).shelfCounts !== false,
+          click: (item) => sendToWindow({ type: 'shelfCounts', checked: item.checked })
+        },
         { type: 'separator' },
         {
           label: t('Page'),

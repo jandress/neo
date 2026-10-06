@@ -619,5 +619,7 @@
   "Replace with": "Αντικατάσταση με",
   "Replace": "Αντικατάσταση",
   "All": "Όλα",
-  "Close (Esc)": "Κλείσιμο (Esc)"
+  "Close (Esc)": "Κλείσιμο (Esc)",
+  "Word Counts on the Shelf": "Πλήθος λέξεων στο ράφι",
+  "{title} — {n} words": "{title} — {n} λέξεις"
 }

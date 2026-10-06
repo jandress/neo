@@ -735,5 +735,12 @@
   "Write in a new paragraph below or above": "Писать в новом абзаце ниже или выше",
   "Select": "Выделить",
   "Move to stretch it, then y to copy or d to cut.": "Перемещайтесь, чтобы расширить выделение, затем y — копировать, d — вырезать.",
-  "Delete the letter under the caret": "Удалить букву под курсором"
+  "Delete the letter under the caret": "Удалить букву под курсором",
+  "Word Counts on the Shelf": "Число слов на полке",
+  "{title} — {n} words": {
+    "one": "{title} — {n} слово",
+    "few": "{title} — {n} слова",
+    "many": "{title} — {n} слов",
+    "other": "{title} — {n} слова"
+  }
 }

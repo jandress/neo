@@ -1918,3 +1918,14 @@ body.night #paper.script #chapters { box-shadow: 0 4px 30px rgba(0,0,0,0.7); }
 #nav-pane.script .nav-item.sp-scene .n-row { justify-content: flex-start; gap: 8px; }
 #nav-pane.script .nav-item.sp-scene .n-words { margin-left: auto; }
 body.light #nav-pane.script .nav-item.sp-scene .n-num { color: #8f8a80; }
+
+/* each work's word count on the shelf's edge below it (shelfCounts in
+   app.js): the row makes room above its plank, and the labels sit there */
+.shelf-books.with-counts { position: relative; padding-bottom: 20px; row-gap: 32px; }
+.shelf-counts { position: absolute; inset: 0; pointer-events: none; }
+.shelf-counts span {
+  position: absolute; transform: translateX(-50%); white-space: nowrap;
+  font: 500 10px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; letter-spacing: 0.4px;
+  color: #7d786d; font-variant-numeric: tabular-nums;
+}
+body.light .shelf-counts span { color: #8f897e; }

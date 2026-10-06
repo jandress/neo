@@ -717,5 +717,12 @@
   "Write in a new paragraph below or above": "Pisz w nowym akapicie poniżej lub powyżej",
   "Select": "Zaznacz",
   "Move to stretch it, then y to copy or d to cut.": "Poruszaj się, by je rozszerzyć, potem y, by skopiować, lub d, by wyciąć.",
-  "Delete the letter under the caret": "Usuń literę pod kursorem"
+  "Delete the letter under the caret": "Usuń literę pod kursorem",
+  "Word Counts on the Shelf": "Liczba słów na półce",
+  "{title} — {n} words": {
+    "one": "{title} — {n} słowo",
+    "few": "{title} — {n} słowa",
+    "many": "{title} — {n} słów",
+    "other": "{title} — {n} słowa"
+  }
 }

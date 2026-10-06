@@ -683,5 +683,10 @@
   "Write in a new paragraph below or above": "Écrire dans un nouveau paragraphe en dessous ou au-dessus",
   "Select": "Sélectionner",
   "Move to stretch it, then y to copy or d to cut.": "Déplacez-vous pour l’étendre, puis y pour copier ou d pour couper.",
-  "Delete the letter under the caret": "Supprimer la lettre sous le curseur"
+  "Delete the letter under the caret": "Supprimer la lettre sous le curseur",
+  "Word Counts on the Shelf": "Nombre de mots sur l’étagère",
+  "{title} — {n} words": {
+    "one": "{title} — {n} mot",
+    "other": "{title} — {n} mots"
+  }
 }

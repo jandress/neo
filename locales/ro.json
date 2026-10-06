@@ -712,5 +712,11 @@
   "Write in a new paragraph below or above": "Scrie într-un paragraf nou dedesubt sau deasupra",
   "Select": "Selectează",
   "Move to stretch it, then y to copy or d to cut.": "Deplasează-te ca s-o extinzi, apoi y pentru copiere sau d pentru tăiere.",
-  "Delete the letter under the caret": "Șterge litera de sub cursor"
+  "Delete the letter under the caret": "Șterge litera de sub cursor",
+  "Word Counts on the Shelf": "Numărul de cuvinte pe raft",
+  "{title} — {n} words": {
+    "one": "{title} — {n} cuvânt",
+    "few": "{title} — {n} cuvinte",
+    "other": "{title} — {n} de cuvinte"
+  }
 }

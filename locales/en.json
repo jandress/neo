@@ -53,5 +53,9 @@
   "Sprint ended — {n} words in {min} min": {
     "one": "Sprint ended — {n} word in {min} min",
     "other": "Sprint ended — {n} words in {min} min"
+  },
+  "{title} — {n} words": {
+    "one": "{title} — {n} word",
+    "other": "{title} — {n} words"
   }
 }

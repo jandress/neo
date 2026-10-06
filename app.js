@@ -7064,8 +7064,36 @@ async function stConvert(meta, toStory) {
     if (!m.storyFont) m.storyFont = 'times';
   } else delete m.format; // the font and keywords stay, for a way back
   await writeBookMeta(m.id, m);
+  // and its folder says what it is now: story-… or book-…
+  if (window.neo.refolderBook && !(book && book.id === m.id)) {
+    // counted as a library write, so a refresh from disk can't land mid-way
+    libraryGeneration++;
+    libraryWritesPending++;
+    try {
+      const r = await window.neo.refolderBook(m.id, toStory ? 'story' : 'book', library);
+      if (r && r.id !== m.id) {
+        bookMetaCache.delete(m.id);
+        swapIdInPlace(library, m.id, r.id); // the same change the disk has now
+      }
+    } catch (err) {
+      window.neo.logError('refolder: ' + (err && err.message || err));
+    } finally { libraryWritesPending--; }
+  }
   renderShelves();
   toast(toStory ? t('“{title}” is a short story now, in manuscript format', { title: m.title }) : t('“{title}” is a book now', { title: m.title }));
+}
+// a work's old folder name, wherever the library holds it, made the new one;
+// in place, so the shelves already in hand stay the library's own
+function swapIdInPlace(obj, from, to) {
+  if (Array.isArray(obj)) {
+    obj.forEach((v, i) => { if (v === from) obj[i] = to; else if (v && typeof v === 'object') swapIdInPlace(v, from, to); });
+  } else if (obj && typeof obj === 'object') {
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (v === from) obj[k] = to; else if (v && typeof v === 'object') swapIdInPlace(v, from, to);
+      if (k === from) { obj[to] = obj[k]; delete obj[k]; }
+    }
+  }
 }
 // a manuscript on the shelf: a white page, its corner block and title typed,
 // held with a paper clip

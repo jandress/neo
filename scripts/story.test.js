@@ -173,7 +173,7 @@ test('an anonymous manuscript carries no name: no contact, no byline, a head of 
 
 // the submission rules from app.js
 const sctx = vm.createContext({});
-vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder, subCredit, subFirstAppearance };', sctx);
+vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder, subCredit, subFirstAppearance, subChecks, subNamesIn, diffSeq, diffParas, subMarketStats, subOverdue, subLetter };', sctx);
 const sb = sctx.api;
 
 test('submissions: what is out, how long, and what the shelf shows', () => {
@@ -219,4 +219,62 @@ test('a collection credits where each story first appeared', () => {
   assert.equal(sb.subFirstAppearance(list).market, 'B', 'the earliest published');
   assert.equal(sb.subFirstAppearance([{ market: 'D', status: 'accepted', sent: '2026-05-01', responded: '2026-06-01' }]).market, 'D', 'sold, not out yet');
   assert.equal(sb.subFirstAppearance([{ status: 'pending' }]), null);
+});
+
+test('the pre-send check names what would be embarrassing to send', () => {
+  const ok = { title: 'Rapture', contact: 'Jo', byline: 'Jo', flags: 0, ghosts: 0, words: 4000, goal: 5000, limit: 0, anonymous: false, text: '', names: [] };
+  assert.deepEqual([...sb.subChecks(ok)], [], 'a clean manuscript passes');
+  const codes = (i) => [...sb.subChecks(i).map((c) => c.code)];
+  assert.deepEqual(codes({ ...ok, title: '', contact: ' ', byline: '' }), ['title', 'contact', 'byline']);
+  assert.deepEqual(codes({ ...ok, flags: 2, ghosts: 1 }), ['placeholders', 'outline']);
+  assert.deepEqual(codes({ ...ok, words: 5200 }), ['goal']);
+  assert.deepEqual(codes({ ...ok, words: 5200, limit: 5000, market: 'X' }), ['limit'], 'a market\'s limit says it, not the goal too');
+  assert.deepEqual(codes({ ...ok, anonymous: true, contact: '', byline: '' }), [], 'anonymous: no contact or byline wanted');
+  const found = sb.subChecks({ ...ok, anonymous: true, text: 'Then Andress came in.', names: ['Jason Andress', 'J. A. Crow'] });
+  assert.deepEqual([...found.map((c) => c.code)], ['name']);
+  assert.deepEqual([...found[0].names], ['Andress']);
+});
+
+test('names in an anonymous story: the whole name in any case, a surname capitalized', () => {
+  assert.deepEqual([...sb.subNamesIn('signed jason andress below', ['Jason Andress'])], ['jason andress']);
+  assert.deepEqual([...sb.subNamesIn('A crow sat on the wire.', ['J. A. Crow'])], [], 'the bird is not the writer');
+  assert.deepEqual([...sb.subNamesIn('Old Crow drank alone.', ['J. A. Crow'])], ['Crow']);
+  assert.deepEqual([...sb.subNamesIn('Crowley left.', ['J. A. Crow'])], [], 'part of another word');
+  assert.deepEqual([...sb.subNamesIn('Cher sang.', ['Cher'])], ['Cher'], 'a one-word name');
+});
+
+test('comparing versions: paragraphs the same, gone, new, and changed word by word', () => {
+  assert.deepEqual([...sb.diffSeq(['a', 'b', 'c'], ['a', 'c', 'd']).map((o) => o.op)], ['same', 'del', 'same', 'add']);
+  const d = sb.diffParas(['One.', 'The cat sat.', 'Gone.', 'End.'], ['One.', 'The dog sat.', 'End.', 'New line here.']);
+  assert.deepEqual([...d.paras.map((p) => p.kind)], ['same', 'change', 'del', 'same', 'add']);
+  assert.equal(d.added, 1 + 3, 'dog, and the new paragraph\'s three words');
+  assert.equal(d.removed, 1 + 1, 'cat, and Gone.');
+  assert.equal(d.changed, 3);
+  assert.equal(sb.diffParas(['Same.'], ['Same.']).changed, 0);
+});
+
+test('markets: what the writer\'s own history says, and what is taking longer than usual', () => {
+  const subsAll = [
+    { market: 'Lightspeed', status: 'rejected-form', sent: '2026-01-01', responded: '2026-01-31' },
+    { market: 'lightspeed ', status: 'rejected-personal', sent: '2026-03-01', responded: '2026-03-21' },
+    { market: 'Lightspeed', status: 'pending', sent: '2026-08-01' },
+    { market: 'Asimov’s', status: 'accepted', sent: '2026-02-01', responded: '2026-05-01' }
+  ];
+  const st = sb.subMarketStats(subsAll, '2026-10-05');
+  assert.deepEqual({ ...st.lightspeed }, { sent: 3, out: 1, accepted: 0, personal: 1, form: 1, answered: 2, days: 50, avgDays: 25 });
+  assert.equal(st['asimov’s'].accepted, 1);
+  assert.ok(sb.subOverdue(subsAll[2], null, st.lightspeed, '2026-10-05'), '65 days against an average of 25');
+  assert.ok(!sb.subOverdue(subsAll[2], { usual: 90 }, st.lightspeed, '2026-10-05'), 'the market says 90');
+  assert.ok(!sb.subOverdue({ market: 'New', status: 'pending', sent: '2026-01-01' }, null, { answered: 1, avgDays: 5 }, '2026-10-05'), 'one answer is not enough to go on');
+});
+
+test('a cover letter: the ask, the credits as a list, the sign-off', () => {
+  const l = sb.subLetter({ editor: 'Ms. Rivera', market: 'Lightspeed', title: 'Rapture', category: 'short story', words: 'about 4,300 words', credits: ['Asimov’s', 'Clarkesworld', 'F&SF'], bio: '', name: 'Jo Writer', email: 'jo@example.com' });
+  assert.match(l, /^Dear Ms\. Rivera,\n\nPlease consider my short story “Rapture” \(about 4,300 words\) for Lightspeed\./);
+  assert.match(l, /My fiction has appeared in Asimov’s, Clarkesworld, and F&SF\./);
+  assert.match(l, /Best,\nJo Writer\njo@example\.com$/);
+  const bare = sb.subLetter({ market: 'X', title: 'T', category: '', words: '900 words', credits: [], name: 'Jo' });
+  assert.match(bare, /^Dear Editors,/);
+  assert.ok(!/appeared/.test(bare));
+  assert.match(sb.subLetter({ market: 'X', title: 'T', words: 'w', credits: ['A', 'B'], name: 'Jo' }), /appeared in A and B\./);
 });

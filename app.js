@@ -7126,6 +7126,7 @@ async function stPdf(anonymous = false) { return stPdfHtml(stManuscript(anonymou
 // PDF and Word leave in manuscript format; the other formats are a book's
 async function stExport(format, anonymous = false) {
   flushAllSaves();
+  if (!(await subConfirm(subCheckInfo(anonymous, null), t('Export anyway')))) return;
   const defaultName = safeName(book.title) + (anonymous ? '-' + safeName(t('anonymous')) : '');
   try {
     const payload = format === 'pdf'
@@ -7402,6 +7403,137 @@ function subFirstAppearance(list) {
   const out = sold.filter((s) => s.published).sort((a, b) => a.published.localeCompare(b.published));
   return out[0] || sold.sort((a, b) => String(a.responded || a.sent).localeCompare(String(b.responded || b.sent)))[0];
 }
+// What would be embarrassing to send, as codes the window words for itself:
+// i = { title, contact, byline, flags, ghosts, words, goal, limit, market,
+// anonymous, text, names }
+function subChecks(i) {
+  const out = [];
+  if (!String(i.title || '').trim()) out.push({ code: 'title' });
+  if (!i.anonymous && !String(i.contact || '').trim()) out.push({ code: 'contact' });
+  if (!i.anonymous && !String(i.byline || '').trim()) out.push({ code: 'byline' });
+  if (i.flags > 0) out.push({ code: 'placeholders', n: i.flags });
+  if (i.ghosts > 0) out.push({ code: 'outline', n: i.ghosts });
+  if (i.limit > 0 && i.words > i.limit) out.push({ code: 'limit', n: i.words, limit: i.limit, market: i.market || '' });
+  else if (i.goal > 0 && i.words > i.goal) out.push({ code: 'goal', n: i.words, goal: i.goal });
+  if (i.anonymous) {
+    const found = subNamesIn(i.text || '', i.names || []);
+    if (found.length) out.push({ code: 'name', names: found });
+  }
+  return out;
+}
+// The writer's names in a text meant to be anonymous: a whole name in any
+// case, or a surname as a capitalized word of its own
+function subNamesIn(text, names) {
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const found = [];
+  const seen = new Set();
+  for (const raw of names) {
+    const name = String(raw || '').trim();
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    const words = name.split(/\s+/);
+    const tries = [new RegExp('(^|[^\\p{L}])' + esc(name) + '(?![\\p{L}])', 'iu')];
+    const last = words[words.length - 1].replace(/[.,]$/, '');
+    if (words.length > 1 && last.length >= 3) tries.push(new RegExp('(^|[^\\p{L}])' + esc(last) + '(?![\\p{L}])', 'u'));
+    for (const re of tries) {
+      const m = text.match(re);
+      if (m) { const hit = m[0].slice(m[1].length); if (!found.includes(hit)) found.push(hit); break; }
+    }
+  }
+  return found;
+}
+
+// ---- comparing two versions ----
+// the steps from a to b, by longest common run: same, del (only in a), add (only in b)
+function diffSeq(a, b, eq = (x, y) => x === y) {
+  const n = a.length;
+  const m = b.length;
+  const L = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = eq(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const ops = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (eq(a[i], b[j])) { ops.push({ op: 'same', a: a[i], b: b[j] }); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) { ops.push({ op: 'del', a: a[i] }); i++; } else { ops.push({ op: 'add', b: b[j] }); j++; }
+  }
+  while (i < n) ops.push({ op: 'del', a: a[i++] });
+  while (j < m) ops.push({ op: 'add', b: b[j++] });
+  return ops;
+}
+const diffWordsOf = (s) => String(s).split(/(\s+)/).filter((x) => x !== '');
+// Two versions as paragraphs: the same ones, the ones gone, the new, and
+// those changed (a paragraph gone where another came) word by word; with
+// how many words came and went
+function diffParas(a, b) {
+  const ops = diffSeq(a, b);
+  const out = [];
+  let added = 0;
+  let removed = 0;
+  const count = (s) => (String(s).match(/\S+/g) || []).length;
+  for (let k = 0; k < ops.length; k++) {
+    const o = ops[k];
+    if (o.op === 'same') { out.push({ kind: 'same', text: o.b }); continue; }
+    // a run of gone and new together: pair them up as changes
+    const dels = [];
+    const adds = [];
+    while (k < ops.length && ops[k].op !== 'same') { if (ops[k].op === 'del') dels.push(ops[k].a); else adds.push(ops[k].b); k++; }
+    k--;
+    const pairs = Math.min(dels.length, adds.length);
+    for (let p = 0; p < pairs; p++) {
+      const words = diffSeq(diffWordsOf(dels[p]), diffWordsOf(adds[p]));
+      for (const w of words) { if (w.op === 'add') added += count(w.b); if (w.op === 'del') removed += count(w.a); }
+      out.push({ kind: 'change', words });
+    }
+    for (const d of dels.slice(pairs)) { removed += count(d); out.push({ kind: 'del', text: d }); }
+    for (const x of adds.slice(pairs)) { added += count(x); out.push({ kind: 'add', text: x }); }
+  }
+  return { paras: out, added, removed, changed: out.filter((p) => p.kind !== 'same').length };
+}
+
+// ---- markets: the writer's own, and what their history says ----
+const subMarketKey = (name) => String(name || '').trim().toLowerCase();
+// per market, from every submission in the library
+function subMarketStats(subsAll) {
+  const stats = {};
+  for (const s of subsAll) {
+    const key = subMarketKey(s.market);
+    if (!key) continue;
+    const st = stats[key] || (stats[key] = { sent: 0, out: 0, accepted: 0, personal: 0, form: 0, answered: 0, days: 0, avgDays: 0 });
+    st.sent++;
+    if (subOut(s)) st.out++;
+    if (s.status === 'accepted') st.accepted++;
+    if (s.status === 'rejected-personal') st.personal++;
+    if (s.status === 'rejected-form') st.form++;
+    if (!subOut(s) && s.status !== 'withdrawn' && s.responded) { st.answered++; st.days += subDays(s.sent, s.responded); }
+  }
+  for (const st of Object.values(stats)) st.avgDays = st.answered ? Math.round(st.days / st.answered) : 0;
+  return stats;
+}
+// out longer than this market usually takes: its stated response time, or,
+// with two answers or more to go on, the average of them
+function subOverdue(sub, market, stat, today) {
+  if (!subOut(sub)) return false;
+  const usual = (market && market.usual) || (stat && stat.answered >= 2 ? stat.avgDays : 0);
+  return usual > 0 && subDays(sub.sent, today) > usual;
+}
+
+// ---- a cover letter ----
+// the plain short letter magazines ask for; every part optional but the ask
+function subLetter(i) {
+  const lines = [];
+  lines.push(`Dear ${i.editor || 'Editors'},`, '');
+  const what = [i.category, '“' + i.title + '”'].filter(Boolean).join(' ');
+  lines.push(`Please consider my ${what} (${i.words}) for ${i.market}.`);
+  const credits = (i.credits || []).filter(Boolean);
+  if (credits.length) {
+    const list = credits.length === 1 ? credits[0] : credits.slice(0, -1).join(', ') + (credits.length > 2 ? ',' : '') + ' and ' + credits[credits.length - 1];
+    lines.push('', `My fiction has appeared in ${list}.`);
+  }
+  if (i.bio) lines.push('', i.bio);
+  lines.push('', 'Thank you for your time and consideration.', '', 'Best,', i.name || '');
+  if (i.email) lines.push(i.email);
+  return lines.join('\n').replace(/\n+$/, '');
+}
 // ---- end of submission rules ----
 
 const SUB_LABELS = () => ({
@@ -7451,7 +7583,9 @@ function subForm(sub, conflictsFor) {
     bd.innerHTML = `
       <div class="modal sub-form" style="width:460px">
         <h2 style="font-size:16px"></h2>
-        <label>${t('Market')}<input class="f-market" type="text" spellcheck="false"></label>
+        <label>${t('Market')}<input class="f-market" type="text" spellcheck="false" list="sub-market-list"></label>
+        <datalist id="sub-market-list"></datalist>
+        <p class="sub-market-note" hidden></p>
         <div class="sub-row">
           <label>${t('Sent')}<input class="f-sent" type="date"></label>
           <label>${t('Status')}<select class="f-status"></select></label>
@@ -7498,6 +7632,27 @@ function subForm(sub, conflictsFor) {
     };
     $f('.f-sim').addEventListener('change', warn);
     warn();
+    // the markets already known, offered as the name is typed; a known one
+    // brings what's on record (simultaneous or not, its limit, reading blind)
+    const dl = $f('#sub-market-list');
+    for (const m of subMarkets()) { const o = document.createElement('option'); o.value = m.name; dl.appendChild(o); }
+    const marketNote = () => {
+      const m = subMarket($f('.f-market').value);
+      const note = $f('.sub-market-note');
+      if (!m) { note.hidden = true; return; }
+      if (!editing) { $f('.f-sim').checked = m.simultaneous !== false; warn(); }
+      const n = book ? bookWordCount() : 0;
+      const bits = [
+        m.limit ? (n > m.limit ? t('Limit {limit} words: this story is {n}.', { limit: fmtNum(m.limit), n: fmtNum(n) }) : t('Limit {limit} words.', { limit: fmtNum(m.limit) })) : '',
+        m.blind ? t('Reads blind: send the anonymous manuscript.') : '',
+        m.periods ? t('Reading: {periods}', { periods: m.periods }) : ''
+      ].filter(Boolean);
+      note.hidden = !bits.length;
+      setText(note, bits.join(' · '));
+      note.classList.toggle('over', !!(m.limit && n > m.limit));
+    };
+    $f('.f-market').addEventListener('input', marketNote);
+    marketNote();
     $f('.f-market').focus();
     const done = (ok) => {
       if (ok && !$f('.f-market').value.trim()) { $f('.f-market').focus(); return; }
@@ -7528,6 +7683,10 @@ async function subLog() {
   await subsLoad();
   const fields = await subForm(null, (sim) => subConflicts(subs, sim));
   if (!fields || !book) return;
+  // the check, as this market will read it (blind, if it reads blind)
+  const market = subMarket(fields.market);
+  if (!(await subConfirm(subCheckInfo(!!(market && market.blind), market), t('Log it anyway')))) return;
+  subMarketEnsure(fields);
   const id = 'sub-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   let version = null;
   if (library.subSnapshots !== false) {
@@ -7651,20 +7810,25 @@ async function renderSubmissions() {
   v.appendChild(head);
   const labels = SUB_LABELS();
   const today = subToday();
+  // each market's habits, from the whole library, for "longer than usual"
+  const stats = subs.some(subOut) ? subMarketStats((await subAllRows()).map((r) => r.sub)) : null;
   for (const s of [...subs].sort((a, b) => String(b.sent).localeCompare(String(a.sent)))) {
     const row = document.createElement('div');
     row.className = 'sub-item status-' + s.status;
     row.innerHTML = `<div class="si-top"><span class="si-market"></span><select class="si-status"></select></div>
       <div class="si-meta"></div><div class="si-notes"></div>
-      <div class="si-actions"><button class="si-edit">${t('Edit')}</button><button class="si-version">${t('Sent version')}</button><button class="si-del">${t('Delete')}</button></div>`;
+      <div class="si-actions"><button class="si-letter">${t('Cover letter')}</button><button class="si-compare">${t('Compare')}</button><button class="si-edit">${t('Edit')}</button><button class="si-version">${t('Sent version')}</button><button class="si-del">${t('Delete')}</button></div>`;
     setText(row.querySelector('.si-market'), s.market);
+    // the market's own record, from its name
+    row.querySelector('.si-market').title = t('The market’s details');
+    row.querySelector('.si-market').onclick = async () => { if (await subEditMarket(s.market)) renderSubmissions(); };
     const sel = row.querySelector('.si-status');
     for (const [val, label] of Object.entries(labels)) { const o = document.createElement('option'); o.value = val; o.textContent = label; sel.appendChild(o); }
     sel.value = s.status;
     sel.onchange = () => subSetStatus(s, sel.value);
     const meta = [
       t('sent {date}', { date: s.sent }),
-      subOut(s) ? t('{n} days out', { n: subDays(s.sent, today) }) : (s.responded ? t('answered {date} ({n} days)', { date: s.responded, n: subDays(s.sent, s.responded) }) : ''),
+      subOut(s) ? t('{n} days out', { n: subDays(s.sent, today) }) + (subOverdue(s, subMarket(s.market), (stats || {})[subMarketKey(s.market)], today) ? ' · ' + t('longer than usual') : '') : (s.responded ? t('answered {date} ({n} days)', { date: s.responded, n: subDays(s.sent, s.responded) }) : ''),
       s.simultaneous === false ? t('no simultaneous') : '',
       s.published ? t('published {date}', { date: s.published }) : '',
       s.rights, s.pay
@@ -7672,6 +7836,9 @@ async function renderSubmissions() {
     setText(row.querySelector('.si-meta'), meta);
     setText(row.querySelector('.si-notes'), s.notes || '');
     row.querySelector('.si-version').hidden = !s.version;
+    row.querySelector('.si-compare').hidden = !s.version;
+    row.querySelector('.si-compare').onclick = () => subCompare(s);
+    row.querySelector('.si-letter').onclick = () => subShowLetter(s);
     row.querySelector('.si-edit').onclick = () => subEdit(s);
     row.querySelector('.si-version').onclick = () => subShowVersion(s);
     row.querySelector('.si-del').onclick = () => subDelete(s);
@@ -7707,6 +7874,7 @@ async function subsLibrary() {
   }
   const today = subToday();
   const { out, back } = subLibraryOrder(rows, today);
+  const stats = subMarketStats(rows.map((r) => r.sub));
   const labels = SUB_LABELS();
   const bd = document.createElement('div');
   bd.className = 'modal-backdrop';
@@ -7736,6 +7904,11 @@ async function subsLibrary() {
       setText(row.querySelector('.sl-story'), isUntitled(r.meta.title) ? t('Untitled') : r.meta.title);
       setText(row.querySelector('.sl-market'), r.sub.market);
       setText(row.querySelector('.sl-when'), outNow ? t('{n} days out', { n: subDays(r.sub.sent, today) }) : (r.sub.responded || r.sub.sent));
+      // out longer than this market usually takes: worth a query?
+      if (outNow && subOverdue(r.sub, subMarket(r.sub.market), stats[subMarketKey(r.sub.market)], today)) {
+        row.classList.add('overdue');
+        row.querySelector('.sl-when').title = t('Longer than this market usually takes. Worth a query?');
+      }
       setText(row.querySelector('.sl-status'), labels[r.sub.status] || r.sub.status);
       row.onclick = async () => {
         bd.remove();
@@ -7747,10 +7920,293 @@ async function subsLibrary() {
   };
   section(t('Out now'), out, true);
   section(t('Answered'), back, false);
+  // the markets: the writer's list and every one they've sent to, with what
+  // their own history says of each
+  const names = new Map();
+  for (const m of subMarkets()) names.set(subMarketKey(m.name), m.name);
+  for (const r of rows) if (!names.has(subMarketKey(r.sub.market))) names.set(subMarketKey(r.sub.market), r.sub.market);
+  if (names.size) {
+    const h = document.createElement('div');
+    h.className = 'sl-head sl-markets-head';
+    h.innerHTML = `<span></span><button class="sl-add">${t('Add a market…')}</button>`;
+    setText(h.firstElementChild, t('Markets'));
+    h.querySelector('.sl-add').onclick = async () => { const v = await subMarketForm(null); if (v && v !== 'remove') { subMarkets().push(v); await writeLibrary(library); bd.remove(); subsLibrary(); } };
+    list.appendChild(h);
+    for (const [key, name] of [...names].sort((a, b) => a[1].localeCompare(b[1]))) {
+      const st = stats[key] || { sent: 0, accepted: 0, personal: 0, answered: 0, avgDays: 0, out: 0 };
+      const m = subMarket(name);
+      const row = document.createElement('button');
+      row.className = 'sl-row sl-market-row';
+      row.innerHTML = '<span class="sl-story"></span><span class="sl-market"></span><span class="sl-when"></span><span class="sl-status"></span>';
+      setText(row.querySelector('.sl-story'), name);
+      setText(row.querySelector('.sl-market'), [t('{n} sent', { n: st.sent }), st.accepted ? t('{n} accepted', { n: st.accepted }) : '', st.personal ? t('{n} personal', { n: st.personal }) : ''].filter(Boolean).join(' · '));
+      setText(row.querySelector('.sl-when'), st.answered ? (st.avgDays ? t('answers in ~{n} days', { n: st.avgDays }) : t('answers the same day')) : (m && m.usual ? t('says ~{n} days', { n: m.usual }) : ''));
+      setText(row.querySelector('.sl-status'), [m && m.limit ? t('to {n} words', { n: fmtNum(m.limit) }) : '', m && m.simultaneous === false ? t('no sims') : '', m && m.blind ? t('blind') : ''].filter(Boolean).join(' · '));
+      row.onclick = async () => { if (await subEditMarket(name)) { bd.remove(); subsLibrary(); } };
+      list.appendChild(row);
+    }
+  }
   const close = () => bd.remove();
   bd.querySelector('.m-ok').onclick = close;
   bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
   bd.querySelector('.m-ok').focus();
+}
+// ---- before it goes out: the pre-send check ----
+// what the check reads, for the open story; market is the record, if any
+function subCheckInfo(anonymous, market) {
+  const names = [library.authorName, ...(library.penNames || []), book.author, ...((library.authors || []).map((a) => a.name))];
+  return {
+    title: isUntitled(book.title) ? '' : book.title,
+    contact: library.scriptContact || '',
+    byline: book.author || '',
+    flags: document.querySelectorAll('#chapters .chapter-body .ph-mark').length,
+    ghosts: document.querySelectorAll('#chapters .chapter-body p.ghost').length,
+    words: bookWordCount(),
+    goal: book.wordGoal || 0,
+    limit: (market && market.limit) || 0,
+    market: market ? market.name : '',
+    anonymous: !!anonymous,
+    text: book.chapterOrder.map((c) => chapterText(c)).join('\n'),
+    names: names.filter(Boolean)
+  };
+}
+function subCheckText(c) {
+  switch (c.code) {
+    case 'title': return t('The story has no title.');
+    case 'contact': return t('The contact block on page one is empty.');
+    case 'byline': return t('There is no byline.');
+    case 'placeholders': return t('{n} placeholders are still unresolved.', { n: c.n });
+    case 'outline': return t('{n} outline notes are still in the text, unwritten.', { n: c.n });
+    case 'limit': return t('{n} words is over the {limit}-word limit at {market}.', { n: c.n, limit: fmtNum(c.limit), market: c.market });
+    case 'goal': return t('{n} words is over the story’s goal of {goal}.', { n: c.n, goal: fmtNum(c.goal) });
+    case 'name': return t('Your name is in the story itself: {names}.', { names: c.names.join(', ') });
+  }
+  return '';
+}
+// true to go ahead: nothing found, or the writer says so
+async function subConfirm(info, anyway) {
+  const found = subChecks(info);
+  if (!found.length) return true;
+  const list = found.map((c) => '• ' + escHtml(subCheckText(c))).join('<br>');
+  const pick = await optionModal(t('Before it goes out'), list, [
+    { label: t('Go back and fix it'), value: 'back' },
+    { label: anyway, value: 'go' }
+  ]);
+  return pick === 'go';
+}
+
+// ---- markets: the writer's own list ----
+function subMarkets() { return (library.markets = Array.isArray(library.markets) ? library.markets : []); }
+const subMarket = (name) => subMarkets().find((m) => subMarketKey(m.name) === subMarketKey(name)) || null;
+// a market first sent to joins the list, with what the submission said of it
+function subMarketEnsure(fields) {
+  if (!fields.market || subMarket(fields.market)) return;
+  subMarkets().push({ name: fields.market, simultaneous: fields.simultaneous !== false });
+  writeLibrary(library);
+}
+function subMarketForm(m) {
+  return new Promise((resolve) => {
+    const bd = document.createElement('div');
+    bd.className = 'modal-backdrop';
+    bd.innerHTML = `
+      <div class="modal sub-form" style="width:460px">
+        <h2 style="font-size:16px"></h2>
+        <label>${t('Market')}<input class="f-name" type="text" spellcheck="false"></label>
+        <label>${t('Editor')}<input class="f-editor" type="text" spellcheck="false"></label>
+        <div class="sub-row">
+          <label>${t('Word limit')}<input class="f-limit" type="text" inputmode="numeric"></label>
+          <label>${t('Usual response (days)')}<input class="f-usual" type="text" inputmode="numeric"></label>
+        </div>
+        <label>${t('Pay')}<input class="f-pay" type="text" spellcheck="false"></label>
+        <label class="sub-check"><input class="f-sim" type="checkbox"> ${t('Takes simultaneous submissions')}</label>
+        <label class="sub-check"><input class="f-blind" type="checkbox"> ${t('Reads blind (send it anonymous)')}</label>
+        <label>${t('Reading periods')}<input class="f-periods" type="text" spellcheck="false"></label>
+        <label>${t('Notes')}<textarea class="f-notes contact-text" rows="3" spellcheck="false"></textarea></label>
+        <div style="text-align:right;margin-top:6px">
+          <button class="m-del btn-quiet" style="float:left">${t('Remove from the list')}</button>
+          <button class="m-cancel btn-quiet" style="margin-right:10px">${t('Cancel')}</button>
+          <button class="m-ok btn-gold">${t('Save')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(bd);
+    const $f = (c) => bd.querySelector(c);
+    setText($f('h2'), m && m.name ? m.name : t('A market'));
+    $f('.f-name').value = (m && m.name) || '';
+    $f('.f-editor').value = (m && m.editor) || '';
+    $f('.f-limit').value = m && m.limit ? String(m.limit) : '';
+    $f('.f-usual').value = m && m.usual ? String(m.usual) : '';
+    $f('.f-pay').value = (m && m.pay) || '';
+    $f('.f-sim').checked = !m || m.simultaneous !== false;
+    $f('.f-blind').checked = !!(m && m.blind);
+    $f('.f-periods').value = (m && m.periods) || '';
+    $f('.f-notes').value = (m && m.notes) || '';
+    $f('.m-del').hidden = !m || !subMarkets().includes(m);
+    $f('.f-name').focus();
+    const done = (v) => { bd.remove(); resolve(v); };
+    $f('.m-cancel').onclick = () => done(null);
+    $f('.m-del').onclick = () => done('remove');
+    $f('.m-ok').onclick = () => {
+      const name = $f('.f-name').value.trim();
+      if (!name) { $f('.f-name').focus(); return; }
+      done({
+        name, editor: $f('.f-editor').value.trim(), limit: stGoalNumber($f('.f-limit').value), usual: stGoalNumber($f('.f-usual').value),
+        pay: $f('.f-pay').value.trim(), simultaneous: $f('.f-sim').checked, blind: $f('.f-blind').checked,
+        periods: $f('.f-periods').value.trim(), notes: $f('.f-notes').value.trim()
+      });
+    };
+    bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); } });
+  });
+}
+async function subEditMarket(name) {
+  const m = subMarket(name) || { name };
+  const v = await subMarketForm(subMarket(name) ? m : { name, simultaneous: true });
+  if (!v) return false;
+  if (v === 'remove') { library.markets = subMarkets().filter((x) => x !== m); await writeLibrary(library); return true; }
+  const known = subMarket(name);
+  if (known) Object.assign(known, v); else subMarkets().push(v);
+  await writeLibrary(library);
+  return true;
+}
+// every story's submissions, for the numbers by market and the letters' credits
+async function subAllRows() {
+  const rows = [];
+  const seen = new Set();
+  for (const shelf of library.shelves) {
+    for (const id of shelf.bookIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const m = await shelfMeta(id);
+      if (!m || !isShortStory(m)) continue;
+      const list = (book && book.id === id && subsBook === id) ? subs : await window.neo.readJSON(id, 'submissions', []);
+      for (const sub of Array.isArray(list) ? list : []) rows.push({ meta: m, sub });
+    }
+  }
+  return rows;
+}
+
+// ---- what changed since it went ----
+function subVersionParas(html) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html || '';
+  return [...tpl.content.querySelectorAll('p')].filter((p) => !p.classList.contains('sub-by'))
+    .map((p) => (p.classList.contains('scene-break') ? '***' : p.textContent.replace(/ /g, ' ').trim())).filter(Boolean);
+}
+function subCurrentParas() {
+  const out = [];
+  for (const chId of book.chapterOrder) {
+    const el = document.querySelector(`.chapter[data-id="${chId}"] .chapter-body`);
+    for (const p of parasFromHtml(el ? el.innerHTML : (chapterHTML[chId] || ''))) out.push(p.sceneBreak ? '***' : p.text);
+  }
+  return out;
+}
+async function subCompare(sub) {
+  const v = sub.version;
+  if (!v) return;
+  const d = diffParas(subVersionParas(await window.neo.readAux(book.id, v.file)), subCurrentParas());
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.innerHTML = `
+    <div class="modal sub-version sub-compare" style="width:680px">
+      <h2 style="font-size:16px"></h2>
+      <p class="sub-meta"></p>
+      <div class="sub-version-text"></div>
+      <div style="text-align:right;margin-top:14px"><button class="m-ok btn-gold">${t('Close')}</button></div>
+    </div>`;
+  document.body.appendChild(bd);
+  setText(bd.querySelector('h2'), t('Since it went to {market}', { market: sub.market }));
+  setText(bd.querySelector('.sub-meta'), d.changed
+    ? t('{n} paragraphs changed · {a} words added · {r} taken out', { n: d.changed, a: fmtNum(d.added), r: fmtNum(d.removed) })
+    : t('Nothing has changed since {date}.', { date: sub.sent }));
+  const box = bd.querySelector('.sub-version-text');
+  const para = (cls, build) => { const p = document.createElement('p'); p.className = cls; build(p); box.appendChild(p); };
+  const words = (p, list) => {
+    for (const w of list) {
+      if (w.op === 'same') { p.appendChild(document.createTextNode(w.a)); continue; }
+      const el = document.createElement(w.op === 'add' ? 'ins' : 'del');
+      el.textContent = w.op === 'add' ? w.b : w.a;
+      p.appendChild(el);
+    }
+  };
+  // runs of the same paragraphs fold to a line; the changes stand in full
+  let same = 0;
+  const flush = () => { if (same) para('cmp-same', (p) => setText(p, t('{n} paragraphs the same', { n: same }))); same = 0; };
+  for (const x of d.paras) {
+    if (x.kind === 'same') { same++; continue; }
+    flush();
+    if (x.kind === 'change') para('cmp-change', (p) => words(p, x.words));
+    else para('cmp-' + x.kind, (p) => { const el = document.createElement(x.kind === 'add' ? 'ins' : 'del'); el.textContent = x.text; p.appendChild(el); });
+  }
+  flush();
+  const close = () => bd.remove();
+  bd.querySelector('.m-ok').onclick = close;
+  bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
+  bd.querySelector('.m-ok').focus();
+}
+
+// ---- a cover letter for a submission ----
+const SUB_LETTER_KINDS = { flash: 'flash fiction', 'short story': 'short story', novelette: 'novelette', novella: 'novella', novel: 'story' };
+async function subLetterFor(sub) {
+  const rows = await subAllRows();
+  const today = subToday();
+  // where the writer's fiction has appeared: other stories, published, newest
+  // first, each market once
+  const credits = [];
+  for (const r of rows.filter((x) => x.meta.id !== book.id && x.sub.status === 'accepted' && x.sub.published && x.sub.published <= today)
+    .sort((a, b) => b.sub.published.localeCompare(a.sub.published))) {
+    if (!credits.some((c) => subMarketKey(c) === subMarketKey(r.sub.market))) credits.push(r.sub.market);
+  }
+  const contact = String(library.scriptContact || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  const m = subMarket(sub.market);
+  const n = bookWordCount();
+  return subLetter({
+    editor: m && m.editor, market: sub.market, title: isUntitled(book.title) ? t('Untitled') : book.title,
+    category: SUB_LETTER_KINDS[stCategory(n)], words: n < 100 ? n + ' words' : 'about ' + stRoundWords(n).toLocaleString('en-US') + ' words',
+    credits: credits.slice(0, 3), bio: library.coverBio || '', name: contact[0] || library.authorName || book.author || '',
+    email: contact.find((s) => s.includes('@')) || ''
+  });
+}
+async function subShowLetter(sub) {
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.innerHTML = `
+    <div class="modal sub-form sub-letter" style="width:560px">
+      <h2 style="font-size:16px"></h2>
+      <label>${t('A line about you (every letter uses it)')}<input class="f-bio" type="text" spellcheck="false"></label>
+      <textarea class="f-letter contact-text" rows="14" spellcheck="false"></textarea>
+      <div style="text-align:right;margin-top:12px">
+        <button class="m-redo btn-quiet" style="float:left">${t('Start over')}</button>
+        <button class="m-cancel btn-quiet" style="margin-right:10px">${t('Close')}</button>
+        <button class="m-ok btn-gold">${t('Copy')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bd);
+  const $f = (c) => bd.querySelector(c);
+  setText($f('h2'), t('Cover letter for {market}', { market: sub.market }));
+  const ta = $f('.f-letter');
+  const bio = $f('.f-bio');
+  bio.value = library.coverBio || '';
+  ta.value = sub.letter || await subLetterFor(sub);
+  let edited = !!sub.letter;
+  ta.addEventListener('input', () => { edited = true; });
+  // the bio line, changed: saved for every letter, and this one redrawn if
+  // the writer hasn't written in it yet
+  bio.addEventListener('change', async () => {
+    library.coverBio = bio.value.trim();
+    writeLibrary(library);
+    if (!edited) ta.value = await subLetterFor(sub);
+  });
+  const keep = async () => {
+    const v = ta.value.trim();
+    if (edited && v) { sub.letter = v; await subsSave(); }
+  };
+  $f('.m-redo').onclick = async () => { delete sub.letter; edited = false; ta.value = await subLetterFor(sub); await subsSave(); };
+  $f('.m-cancel').onclick = async () => { await keep(); bd.remove(); };
+  $f('.m-ok').onclick = async () => {
+    await keep();
+    try { await navigator.clipboard.writeText(ta.value); toast(t('Copied — paste it into the market’s form')); } catch { ta.select(); document.execCommand('copy'); toast(t('Copied')); }
+  };
+  bd.addEventListener('keydown', async (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); await keep(); bd.remove(); } });
+  ta.focus();
 }
 $('#subs-btn').onclick = () => subsLibrary();
 // (fork-build: where pane tabs and stories meet) a story's Submissions can

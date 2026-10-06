@@ -173,7 +173,7 @@ test('an anonymous manuscript carries no name: no contact, no byline, a head of 
 
 // the submission rules from app.js
 const sctx = vm.createContext({});
-vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder };', sctx);
+vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder, subCredit, subFirstAppearance };', sctx);
 const sb = sctx.api;
 
 test('submissions: what is out, how long, and what the shelf shows', () => {
@@ -204,4 +204,19 @@ test('submissions: the library lists the longest out first, then the answers new
   const { out, back } = sb.subLibraryOrder(rows, '2026-10-05');
   assert.deepEqual(out.map((r) => r.sub.market), ['B', 'A']);
   assert.deepEqual(back.map((r) => r.sub.market), ['D', 'C']);
+});
+
+test('a collection credits where each story first appeared', () => {
+  const c = sb.subCredit('The Harbor at Night', 'Asimov’s & Co.', 'March 2026');
+  assert.equal(c.text, '“The Harbor at Night” first appeared in Asimov’s & Co., March 2026.');
+  assert.equal(c.html, '“The Harbor at Night” first appeared in <i>Asimov’s &amp; Co.</i>, March 2026.');
+  assert.equal(sb.subCredit('Rapture', 'Lightspeed', '').text, '“Rapture” is forthcoming in Lightspeed.');
+  const list = [
+    { market: 'A', status: 'accepted', sent: '2026-01-01', responded: '2026-02-01', published: '2026-09-01' },
+    { market: 'B', status: 'accepted', sent: '2025-05-01', responded: '2025-06-01', published: '2026-03-01' },
+    { market: 'C', status: 'rejected-form', sent: '2024-01-01' }
+  ];
+  assert.equal(sb.subFirstAppearance(list).market, 'B', 'the earliest published');
+  assert.equal(sb.subFirstAppearance([{ market: 'D', status: 'accepted', sent: '2026-05-01', responded: '2026-06-01' }]).market, 'D', 'sold, not out yet');
+  assert.equal(sb.subFirstAppearance([{ status: 'pending' }]), null);
 });

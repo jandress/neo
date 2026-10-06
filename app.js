@@ -1559,8 +1559,24 @@ async function boundShelfMenu(shelf) {
     missing.push(...[...PAGE_FRONT, 'prologue', 'epilogue', ...PAGE_BACK].filter((k) => !have.has(k) && offer(k)));
     if (missing.length) options.splice(1, 0, { label: t('Add a page…'), value: 'page' });
   }
+  // a collection of stories: the page of where they first appeared
+  let stories = false;
+  for (const id of shelf.bookIds) { const m = await shelfMeta(id); if (m && isShortStory(m)) { stories = true; break; } }
+  const credits = shelf.binding.credits !== false;
+  if (stories) {
+    options.splice(options.length - 1, 0, {
+      label: (credits ? '✓ ' : '') + t('Previously Published page'),
+      desc: t('Where each story first appeared, from its Submissions. Fill in a Published date to show the month and year.'),
+      value: 'credits'
+    });
+  }
   const choice = await optionModal(escHtml(t('“{name}” · one book', { name: shelf.name })), null, options);
-  if (choice === 'export') {
+  if (choice === 'credits') {
+    shelf.binding.credits = !credits;
+    if (shelf.binding.credits) delete shelf.binding.credits;
+    await writeLibrary(library);
+    toast(credits ? t('No Previously Published page') : t('The book lists where its stories first appeared'));
+  } else if (choice === 'export') {
     await exportBoundBook(shelf);
   } else if (choice === 'page') {
     const kind = await optionModal(t('Add a page…'), null, missing.map((k) => ({ label: pageKindName(k), value: k })));
@@ -7130,6 +7146,28 @@ function subLibraryOrder(rows, today) {
   const back = rows.filter((r) => !subOut(r.sub)).sort((a, b) => String(b.sub.responded || b.sub.sent).localeCompare(String(a.sub.responded || a.sub.sent)));
   return { out, back };
 }
+// A collection's credit line for a story that sold: where it first
+// appeared, and when (a month and year already set in the writer's
+// language), or that it's forthcoming there
+function subCredit(title, market, when, tpl = SUB_CREDIT_EN) {
+  const q = '“' + title + '”';
+  const pattern = when ? tpl.appeared : tpl.forthcoming;
+  const fill = (vals) => pattern.replace(/\{(title|market|when)\}/g, (_, k) => vals[k]);
+  return {
+    text: fill({ title: q, market, when }),
+    html: fill({ title: escHtmlBasic(q), market: '<i>' + escHtmlBasic(market) + '</i>', when: escHtmlBasic(when) })
+  };
+}
+const SUB_CREDIT_EN = { appeared: '{title} first appeared in {market}, {when}.', forthcoming: '{title} is forthcoming in {market}.' };
+const escHtmlBasic = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// the first time a story was published: the accepted submission that came
+// out earliest (or, none out yet, the first accepted)
+function subFirstAppearance(list) {
+  const sold = list.filter((s) => s.status === 'accepted');
+  if (!sold.length) return null;
+  const out = sold.filter((s) => s.published).sort((a, b) => a.published.localeCompare(b.published));
+  return out[0] || sold.sort((a, b) => String(a.responded || a.sent).localeCompare(String(b.responded || b.sent)))[0];
+}
 // ---- end of submission rules ----
 
 const SUB_LABELS = () => ({
@@ -7190,7 +7228,10 @@ function subForm(sub, conflictsFor) {
           <label>${t('Reply')}<input class="f-responded" type="date"></label>
           <label>${t('Pay')}<input class="f-pay" type="text" spellcheck="false"></label>
         </div>
-        <label>${t('Rights')}<input class="f-rights" type="text" spellcheck="false"></label>
+        <div class="sub-row">
+          <label>${t('Rights')}<input class="f-rights" type="text" spellcheck="false"></label>
+          <label>${t('Published')}<input class="f-published" type="date"></label>
+        </div>
         <label>${t('Notes')}<textarea class="f-notes contact-text" rows="3" spellcheck="false"></textarea></label>
         <div style="text-align:right;margin-top:6px">
           <button class="m-cancel btn-quiet" style="margin-right:10px">${t('Cancel')}</button>
@@ -7211,6 +7252,7 @@ function subForm(sub, conflictsFor) {
     $f('.f-responded').value = s.responded || '';
     $f('.f-pay').value = s.pay || '';
     $f('.f-rights').value = s.rights || '';
+    $f('.f-published').value = s.published || '';
     $f('.f-notes').value = s.notes || '';
     // a new submission while the story is out: say where it is, plainly
     const warn = () => {
@@ -7235,6 +7277,7 @@ function subForm(sub, conflictsFor) {
         responded: $f('.f-responded').value || '',
         pay: $f('.f-pay').value.trim(),
         rights: $f('.f-rights').value.trim(),
+        published: $f('.f-published').value || '',
         notes: $f('.f-notes').value.trim()
       });
     };
@@ -7389,6 +7432,7 @@ async function renderSubmissions() {
       t('sent {date}', { date: s.sent }),
       subOut(s) ? t('{n} days out', { n: subDays(s.sent, today) }) : (s.responded ? t('answered {date} ({n} days)', { date: s.responded, n: subDays(s.sent, s.responded) }) : ''),
       s.simultaneous === false ? t('no simultaneous') : '',
+      s.published ? t('published {date}', { date: s.published }) : '',
       s.rights, s.pay
     ].filter(Boolean).join(' · ');
     setText(row.querySelector('.si-meta'), meta);
@@ -7475,6 +7519,38 @@ async function subsLibrary() {
   bd.querySelector('.m-ok').focus();
 }
 $('#subs-btn').onclick = () => subsLibrary();
+
+// A bound collection's Previously Published page: one line for each story
+// that sold, in the book's order, set among the back pages ahead of the
+// writer's own acknowledgments. Built at export from the stories' lists;
+// nothing of it is stored.
+async function subCreditsPage(metas, sections, toc) {
+  const month = (d) => {
+    const at = Date.parse(d + 'T12:00:00Z');
+    return Number.isNaN(at) ? '' : new Intl.DateTimeFormat(NeoI18n.getLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(at);
+  };
+  const paras = [];
+  for (const m of metas) {
+    if (!isShortStory(m) || !(m.subs && m.subs.accepted)) continue;
+    const list = await window.neo.readJSON(m.id, 'submissions', []);
+    const first = subFirstAppearance(Array.isArray(list) ? list : []);
+    if (!first) continue;
+    const c = subCredit(isUntitled(m.title) ? t('Untitled') : m.title, first.market, first.published ? month(first.published) : '',
+      { appeared: t('{title} first appeared in {market}, {when}.'), forthcoming: t('{title} is forthcoming in {market}.') });
+    paras.push({ sceneBreak: false, poetry: false, flush: true, align: '', text: c.text, runs: paraRuns(c.html, false), html: `<p class="flush">${c.html}</p>` });
+  }
+  if (!paras.length) return;
+  const page = { kind: 'acknowledgments', front: false, heading: t('Previously Published'), label: t('Previously Published'), level: 0, paras };
+  let at = sections.findIndex((x) => PAGE_BACK.includes(x.kind));
+  if (at < 0) at = sections.length;
+  sections.splice(at, 0, page);
+  // the numbers after it move along one, in the contents too
+  const moved = new Map();
+  sections.forEach((x, i) => { if (x.num && x.num !== i + 1) moved.set(x.num, i + 1); x.num = i + 1; });
+  for (const e of toc) if (moved.has(e.num)) e.num = moved.get(e.num);
+  const tocAt = toc.findIndex((e) => e.num > page.num);
+  toc.splice(tocAt < 0 ? toc.length : tocAt, 0, { label: page.heading, num: page.num, level: 0, type: 'page' });
+}
 
 /* ================================================================== */
 /*  PLACEHOLDERS + STICKIES                                            */
@@ -14002,6 +14078,8 @@ async function shelfBookData(shelf, opts = {}) {
       toc.push({ label: heading, num: s.num, level: lv, type: 'chapter' });
     }
   }
+  // a collection lists where its stories first appeared (SUBMISSIONS)
+  if (bound && shelf.binding.credits !== false) await subCreditsPage(metas, sections, toc);
   // an EPUB wants one identity per book: a bound book keeps the first it gets
   let uuid = null;
   if (bound) {

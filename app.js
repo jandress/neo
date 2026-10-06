@@ -12446,7 +12446,10 @@ async function toggleReadAloud() {
     const { value: item, done } = queue.next();
     if (done || !item.p.isConnected) { stopReadAloud(false); return; }
     reading.item = item;
-    const u = new SpeechSynthesisUtterance(item.p.textContent.slice(item.a, item.b).trim());
+    // a placeholder's ⚑ stays on the page, unspoken
+    const words = item.p.textContent.slice(item.a, item.b).replace(/⚑/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!words) { next(); return; }
+    const u = new SpeechSynthesisUtterance(words);
     if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = writingLanguage();
     u.rate = readRate();
     u.onstart = () => {
@@ -12533,7 +12536,7 @@ async function readVoiceSettings() {
     const text = p ? p.textContent.trim() : '';
     if (text) {
       const first = readSentences(p, 0)[0];
-      if (first) return p.textContent.slice(first[0], first[1]).trim();
+      if (first) return p.textContent.slice(first[0], first[1]).replace(/⚑/g, ' ').replace(/\s+/g, ' ').trim() || t('This is how your pages will sound, read aloud.');
     }
     return t('This is how your pages will sound, read aloud.');
   };

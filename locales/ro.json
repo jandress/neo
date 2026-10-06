@@ -755,5 +755,6 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Numele legal și cum poți fi contactat, câte un element pe rând. Apar pe pagina de titlu a fiecărui scenariu și pe prima pagină a fiecărei povestiri.",
   "Drag to move the scene": "Trage pentru a muta scena",
   "Keep Left Pane Open": "Păstrează panoul din stânga deschis",
-  "Keep Right Pane Open": "Păstrează panoul din dreapta deschis"
+  "Keep Right Pane Open": "Păstrează panoul din dreapta deschis",
+  "Enter — a new section · Backspace on an empty line removes it": "Enter — o secțiune nouă · Backspace pe un rând gol îl șterge"
 }

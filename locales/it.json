@@ -722,5 +722,6 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Il tuo nome anagrafico e come contattarti, un dato per riga. Va sul frontespizio di ogni sceneggiatura e sulla prima pagina di ogni racconto.",
   "Drag to move the scene": "Trascina per spostare la scena",
   "Keep Left Pane Open": "Tieni aperto il pannello sinistro",
-  "Keep Right Pane Open": "Tieni aperto il pannello destro"
+  "Keep Right Pane Open": "Tieni aperto il pannello destro",
+  "Enter — a new section · Backspace on an empty line removes it": "Invio — una nuova sezione · Backspace su una riga vuota la rimuove"
 }

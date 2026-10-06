@@ -780,5 +780,6 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Ваше настоящее имя и как с вами связаться, по одному пункту в строке. Они стоят на титульном листе каждого сценария и на первой странице каждого рассказа.",
   "Drag to move the scene": "Перетащите, чтобы переместить сцену",
   "Keep Left Pane Open": "Не скрывать левую панель",
-  "Keep Right Pane Open": "Не скрывать правую панель"
+  "Keep Right Pane Open": "Не скрывать правую панель",
+  "Enter — a new section · Backspace on an empty line removes it": "Enter — новый раздел · Backspace на пустой строке удаляет её"
 }

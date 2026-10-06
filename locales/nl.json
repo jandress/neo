@@ -719,5 +719,6 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Je wettelijke naam en hoe je bereikbaar bent, één gegeven per regel. Het staat op de titelpagina van elk script en de eerste pagina van elk verhaal.",
   "Drag to move the scene": "Sleep om de scène te verplaatsen",
   "Keep Left Pane Open": "Linkerpaneel open houden",
-  "Keep Right Pane Open": "Rechterpaneel open houden"
+  "Keep Right Pane Open": "Rechterpaneel open houden",
+  "Enter — a new section · Backspace on an empty line removes it": "Enter — een nieuwe sectie · Backspace op een lege regel verwijdert die"
 }

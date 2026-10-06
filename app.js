@@ -7898,7 +7898,9 @@ function renderOutline(focusTarget) {
 
   const hint = document.createElement('div');
   hint.className = 'ol-hint';
-  hint.textContent = t('Enter — new chapter · Tab — make it a section, or a new section below one · ⇧Tab — make it a chapter again · Backspace on an empty line removes it');
+  hint.textContent = isShortStory()
+    ? t('Enter — a new section · Backspace on an empty line removes it')
+    : t('Enter — new chapter · Tab — make it a section, or a new section below one · ⇧Tab — make it a chapter again · Backspace on an empty line removes it');
   wrap.appendChild(hint);
 
   if (focusTarget) {
@@ -8019,6 +8021,20 @@ function outlineLine(kind, chId, secId, index, label, text) {
     if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       if (e.isComposing || e.keyCode === 229) return;
+      // a story is one chapter: Enter makes the next section (after this
+      // line, or first, from the chapter's line)
+      if (isShortStory()) {
+        save();
+        snapshotStructure('outline new section', { outlineFocus: here() });
+        book.sectionNotes = book.sectionNotes || {};
+        const list = book.sectionNotes[chId] = book.sectionNotes[chId] || [];
+        const newSec = { id: newSectionId(), text: '' };
+        list.splice(kind === 'section' ? index + 1 : 0, 0, newSec);
+        scheduleMetaSave();
+        syncGhosts(chId);
+        renderOutline({ secId: newSec.id });
+        return;
+      }
       const above = kind === 'chapter' && caretAtStart();
       save();
       snapshotStructure('outline new chapter', { outlineFocus: here() });
@@ -8058,7 +8074,7 @@ function outlineLine(kind, chId, secId, index, label, text) {
     }
     if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault();
-      if (kind !== 'section') return;
+      if (kind !== 'section' || isShortStory()) return; // a story makes no chapters
       save();
       snapshotStructure('outline section to chapter', { outlineFocus: here() });
       const list = book.sectionNotes[chId];

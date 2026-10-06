@@ -122,7 +122,7 @@ From page two on, the top right of every page reads Surname / Keyword / page. NE
 
 **Format → Manuscript Font** switches between Times New Roman and Courier (right-click page one on a phone). At the bottom, NEO shows your word count and what the length makes the story (flash fiction, short story, novelette, novella), and which page you're on.
 
-The Outline tab shows the story as cards, one per section, and + Section adds another.
+The Chapters pane lists your scenes instead of chapters: each one's opening words, its length, and a line for a note (the same note its card shows on the Outline). Click a scene to jump to it, drag it to move it, break and note and all; ⌘Z puts it back. The Outline tab shows the story as cards, one per section, and + Section adds another.
 
 **File → Export** makes a manuscript PDF or Word file ready to send. The Word file has a real header, so an editor's changes won't knock the page numbers out of place. ⌘E emails you the manuscript PDF. A shelf of stories binds into a collection, each story under its own title.
 

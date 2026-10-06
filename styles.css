@@ -1915,3 +1915,35 @@ body.night #paper.script #chapters { box-shadow: 0 4px 30px rgba(0,0,0,0.7); }
 #nav-pane.script .nav-item.sp-scene .n-row { justify-content: flex-start; gap: 8px; }
 #nav-pane.script .nav-item.sp-scene .n-words { margin-left: auto; }
 body.light #nav-pane.script .nav-item.sp-scene .n-num { color: #8f8a80; }
+
+/* ================================================================== */
+/* PANE TABS: a tab of the bottom bar in the right-hand pane (app.js).
+   The views are the page's own elements, moved in; here they take the
+   pane's colors and size. Notes, the Outline and Darlings get a wider
+   pane, and the pinned page shifts to clear it. */
+/* ================================================================== */
+#side-pane:not([data-view="comments"]) { width: 300px; }
+#editor-view.pane-wide.side-pinned #paper-scroll { left: calc(50% - 150px * var(--ui-zoom)); }
+#editor-view.pane-wide.nav-pinned.side-pinned #paper-scroll { left: calc(50% - 26px * var(--ui-zoom)); }
+#editor-view.pane-wide.board-on.side-pinned #paper-scroll { right: 300px; }
+/* while the Outline is up on the page, the pane is its loose cards' */
+#editor-view.outline-tab #pane-view { display: none; }
+#pane-view { padding: 0 16px; color: #cfcac0; }
+/* the tab the pane holds: a gold mark beside its name */
+.tab.in-pane::after { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-left: 6px; vertical-align: middle; }
+#pane-view #aux-editor { font-size: 14px; line-height: 1.6; min-height: 60vh; color: inherit; }
+#pane-view #aux-editor:empty::before { color: #5d5a54; }
+#pane-view #outline-list .ol-line { font-size: 13px; gap: 8px; }
+#pane-view #outline-list .ol-section { margin-left: 18px; }
+#pane-view #outline-list .ol-chapter { margin-top: 12px; }
+#pane-view #outline-list .ol-num { min-width: 16px; color: #7d786d; }
+#pane-view #outline-list .ol-chapter .ol-num, #pane-view #outline-list .ol-part .ol-num, #pane-view #outline-list .ol-part-name { color: #a39d90; }
+#pane-view #outline-list .ol-text:focus { border-bottom-color: #4a4740; }
+#pane-view #outline-list .ol-text:empty::before { color: #5d5a54; }
+#pane-view #outline-list .ol-hint { margin-top: 24px; font-size: 11px; color: #5d5a54; text-align: left; }
+#pane-view #darlings-list .darling { font-size: 13px; padding: 10px 12px; margin-bottom: 12px; border-color: #3a3833; }
+#pane-view #darlings-list .darling button { border-color: #4a4740; color: #a39d90; }
+#pane-view #darlings-list .darlings-empty { padding: 30px 0; font-size: 12px; color: #5d5a54; }
+body.light #pane-view { color: #2a2824; }
+/* Notes & Comments as a tab of its own, on the page */
+#aux-paper > #sticky-list .sticky { margin: 0 0 14px; }

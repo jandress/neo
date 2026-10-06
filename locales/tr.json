@@ -626,5 +626,8 @@
   "Write in a new paragraph below or above": "Alta veya üste yeni bir paragrafa yaz",
   "Select": "Seç",
   "Move to stretch it, then y to copy or d to cut.": "Genişletmek için hareket et, sonra kopyalamak için y, kesmek için d.",
-  "Delete the letter under the caret": "İmlecin altındaki harfi sil"
+  "Delete the letter under the caret": "İmlecin altındaki harfi sil",
+  "Back to the Page": "Sayfaya geri al",
+  "Comments": "Yorumlar",
+  "Show in the Right Pane": "Sağ panelde göster"
 }

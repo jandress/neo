@@ -49,6 +49,15 @@ The Outline tab shows the book as index cards (OUTLINE CARDS in `app.js`) unless
 Brighter Interface is two settings: `library.uiBright` while writing (and on the shelf), `library.uiBrightAside` on the other tabs, bright unless turned off. `applyBright` picks one on every tab switch.
 - The walking note (`walkNoteUpdate`) is an overlay inside `.chapter`, plus a `data-walk` mark on the caret's paragraph that `captureBody` strips. `note.dismissed` hides it for good.
 
+## Pane tabs
+
+The right-hand pane holds one tab of the bottom bar: Comments (the placeholders, its old content), Notes, the Outline, or Darlings. Right-click a tab (or the pane's head) for Show in the Right Pane or Back to the Page. PANE TABS in `app.js` holds it.
+
+- Each view is one element (`PANE_VIEWS`) that `paneSync` moves between `#aux-paper` and `#pane-view`. Nothing is rendered twice, so a tab in the pane can't also be on the page: clicking it opens the pane.
+- `switchTab` is the wrapper; `switchTabInPage` is the old tab switch. Call `paneSync` after anything that rebuilds the page's views.
+- `library.paneTab` names the pane's tab; absent means Comments. Sending a tab to the pane pins it.
+- In the pane the Outline is its list (`outlineInPane` turns the cards off); a script's Outline stays on the page. `renderNav` calls `paneRefresh`, so the pane follows the book's shape.
+
 ## Screenplays
 
 A book whose `book.json` says `"format": "screenplay"` is a script. Right-click (long-press) a shelf's + for New Script. The SCREENPLAYS section of `app.js` holds the feature; `scripts/screenplay.test.js` tests its rules.

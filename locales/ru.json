@@ -735,5 +735,8 @@
   "Write in a new paragraph below or above": "Писать в новом абзаце ниже или выше",
   "Select": "Выделить",
   "Move to stretch it, then y to copy or d to cut.": "Перемещайтесь, чтобы расширить выделение, затем y — копировать, d — вырезать.",
-  "Delete the letter under the caret": "Удалить букву под курсором"
+  "Delete the letter under the caret": "Удалить букву под курсором",
+  "Back to the Page": "Вернуть на страницу",
+  "Comments": "Комментарии",
+  "Show in the Right Pane": "Показать в правой панели"
 }

@@ -712,5 +712,8 @@
   "Write in a new paragraph below or above": "Scrie într-un paragraf nou dedesubt sau deasupra",
   "Select": "Selectează",
   "Move to stretch it, then y to copy or d to cut.": "Deplasează-te ca s-o extinzi, apoi y pentru copiere sau d pentru tăiere.",
-  "Delete the letter under the caret": "Șterge litera de sub cursor"
+  "Delete the letter under the caret": "Șterge litera de sub cursor",
+  "Back to the Page": "Înapoi pe pagină",
+  "Comments": "Comentarii",
+  "Show in the Right Pane": "Arată în panoul din dreapta"
 }

@@ -717,5 +717,8 @@
   "Write in a new paragraph below or above": "Pisz w nowym akapicie poniżej lub powyżej",
   "Select": "Zaznacz",
   "Move to stretch it, then y to copy or d to cut.": "Poruszaj się, by je rozszerzyć, potem y, by skopiować, lub d, by wyciąć.",
-  "Delete the letter under the caret": "Usuń literę pod kursorem"
+  "Delete the letter under the caret": "Usuń literę pod kursorem",
+  "Back to the Page": "Z powrotem na stronę",
+  "Comments": "Komentarze",
+  "Show in the Right Pane": "Pokaż w prawym panelu"
 }

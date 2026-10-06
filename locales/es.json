@@ -682,5 +682,8 @@
   "Write in a new paragraph below or above": "Escribir en un párrafo nuevo debajo o encima",
   "Select": "Seleccionar",
   "Move to stretch it, then y to copy or d to cut.": "Muévete para ampliarla; luego y para copiar o d para cortar.",
-  "Delete the letter under the caret": "Borrar la letra bajo el cursor"
+  "Delete the letter under the caret": "Borrar la letra bajo el cursor",
+  "Back to the Page": "Volver a la página",
+  "Comments": "Comentarios",
+  "Show in the Right Pane": "Mostrar en el panel derecho"
 }

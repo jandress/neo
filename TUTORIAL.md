@@ -128,6 +128,8 @@ The Chapters pane lists your scenes instead of chapters: each one's opening word
 
 Click the word count at the bottom to give the story a word goal (a market's limit, say); the count shows against it and turns gold once you're over. Right-click a scene in the Scenes pane to give that scene a goal of its own, and the pane shows each scene's words against its goal.
 
+**Submissions.** A story has a Submissions tab. Log a submission… records the market, the date, whether it takes simultaneous submissions, rights, pay and notes, and keeps a copy of the exact version you sent (with its fingerprint), so you know what an editor read. If the story is already out somewhere, NEO says where before you send it again. Change the status as answers come back (pending, shortlisted, rejected with a form letter or a personal one, accepted, withdrawn); the reply date fills itself in. Accept one, and NEO offers to mark the rest withdrawn (you still write to them yourself). Sent version shows the copy, and can open it as a story of its own. A story that's out wears a small stamp on the shelf, and Submissions at the top of the shelf lists everything out across your library, longest out first.
+
 The Word file has a real header, so an editor's changes won't knock the page numbers out of place. ⌘E emails you the manuscript PDF. A shelf of stories binds into a collection, each story under its own title.
 
 **Getting your book out**

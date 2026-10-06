@@ -12957,6 +12957,15 @@ function updateDialogShow(state, info = {}) {
       + ' ' + t('You can download it from the release page instead.');
     ok.textContent = t('View Release');
     ok.onclick = () => { window.neo.openRelease(); bd.close(); };
+  } else if (state === 'available') {
+    // Update Automatically is off: found, and waiting for a yes
+    if (info.currentVersion) text.textContent = t('You have {version}.', { version: info.currentVersion });
+    ok.textContent = t('Download and install');
+    ok.onclick = async () => {
+      if (await window.neo.downloadUpdate()) updateDialogShow('downloading', {});
+      else updateDialogShow('error', { message: t('it isn’t available to download') });
+    };
+    ok.focus();
   } else if (state === 'release') {
     text.textContent = t('You have {version}.', { version: info.currentVersion });
     ok.textContent = t('View Release');
@@ -12977,6 +12986,7 @@ async function checkForUpdate() {
   if (!res.canInstall) updateDialogShow('release', res);
   else if (res.ready) updateDialogShow('ready', res);
   else if (res.state === 'error') updateDialogShow('error', res);
+  else if (res.state === 'available') updateDialogShow('available', res);
   else updateDialogShow('downloading', res);
 }
 

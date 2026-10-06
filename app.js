@@ -7116,11 +7116,24 @@ async function stExport(format, anonymous = false) {
 /* ================================================================== */
 const PANE_TABS = ['comments', 'notes', 'outline', 'darlings'];
 const PANE_VIEWS = { comments: '#sticky-list', notes: '#aux-editor', outline: '#outline-list', darlings: '#darlings-list' };
+// Other tabs join with paneRegister: the view element they keep on the page
+// (made before it's asked for), how to draw it, when the pane can hold it,
+// and its name in the pane's head.
+const PANE_MORE = {};
+// eslint-disable-next-line no-unused-vars -- called by tabs that live elsewhere
+function paneRegister(name, { view, make, render, can, title }) {
+  if (!PANE_TABS.includes(name)) PANE_TABS.push(name);
+  PANE_VIEWS[name] = view;
+  PANE_MORE[name] = { make, render, can, title };
+  for (const tab of $$(`.tab[data-tab="${name}"]`)) paneTabMenu(tab);
+}
 const paneTab = () => (PANE_TABS.includes(library.paneTab) ? library.paneTab : 'comments');
 // a script's outline is its scene cards, which want the page's width
-const paneCanHold = (name) => PANE_TABS.includes(name) && !(name === 'outline' && book && isScript());
+const paneCanHold = (name) => PANE_TABS.includes(name) && !(name === 'outline' && book && isScript()) &&
+  !(PANE_MORE[name] && PANE_MORE[name].can && !PANE_MORE[name].can());
 const outlineInPane = () => !!book && paneTab() === 'outline' && paneCanHold('outline');
-const paneTitle = (name) => (name === 'comments' ? t('Notes & Comments') : name === 'darlings' ? t('Darlings') : tabName(name));
+const paneTitle = (name) => (PANE_MORE[name] && PANE_MORE[name].title ? PANE_MORE[name].title()
+  : name === 'comments' ? t('Notes & Comments') : name === 'darlings' ? t('Darlings') : tabName(name));
 function paneBox() {
   let box = $('#pane-view');
   if (!box) {
@@ -7140,6 +7153,7 @@ function paneSync(reload) {
   const name = paneCanHold(paneTab()) ? paneTab() : 'comments';
   const box = paneBox();
   const aux = $('#aux-paper');
+  for (const more of Object.values(PANE_MORE)) if (more.make) more.make();
   for (const [view, sel] of Object.entries(PANE_VIEWS)) {
     const el = $(sel);
     if (!el) continue;
@@ -7176,6 +7190,7 @@ function paneSync(reload) {
   }
   if (name === 'outline') paneOutline();
   if (name === 'darlings') renderDarlings();
+  if (PANE_MORE[name] && PANE_MORE[name].render) PANE_MORE[name].render();
 }
 // the outline in the pane is its list: cards want the page's width
 function paneOutline() {
@@ -7196,6 +7211,7 @@ function paneRefresh() {
   const name = paneTab();
   if (name === 'outline') paneOutline();
   else if (name === 'darlings' && !$('#darlings-list').contains(document.activeElement)) renderDarlings();
+  else if (PANE_MORE[name] && PANE_MORE[name].render && !$(PANE_VIEWS[name]).contains(document.activeElement)) PANE_MORE[name].render();
 }
 function openPane() {
   const pane = $('#side-pane');
@@ -7240,13 +7256,16 @@ async function paneMenu(name, x, y, from) {
   if (pick === 'pane') sendToPane(name);
   if (pick === 'page') backToPage(name);
 }
-$$('.tab').forEach((tab) => {
+function paneTabMenu(tab) {
+  if (tab.dataset.paneMenu) return;
+  tab.dataset.paneMenu = '1';
   tab.addEventListener('contextmenu', (e) => {
-    if (tab.dataset.tab === 'manuscript') return;
+    if (tab.dataset.tab === 'manuscript' || !PANE_TABS.includes(tab.dataset.tab)) return;
     e.preventDefault();
     paneMenu(tab.dataset.tab, e.clientX, e.clientY, tab);
   });
-});
+}
+$$('.tab').forEach(paneTabMenu);
 $('#side-head').addEventListener('contextmenu', (e) => {
   if (!book) return;
   e.preventDefault();

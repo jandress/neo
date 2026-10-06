@@ -1987,6 +1987,16 @@ function buildMenu() {
         {
           label: t('Check for Update…'),
           click: () => sendToWindow({ type: 'checkUpdate' })
+        },
+        {
+          label: t('Update Automatically'),
+          type: 'checkbox',
+          checked: autoUpdateOn(),
+          click: (item) => {
+            writeSettings({ ...readSettings(), autoUpdate: item.checked });
+            if (updater) updater.autoInstallOnAppQuit = item.checked;
+            if (item.checked) lookForUpdate().catch(() => { /* logged in lookForUpdate */ });
+          }
         }
       ]
     }
@@ -2175,13 +2185,18 @@ ipcMain.handle('app:version', () => app.getVersion());
 let updater = null;          // electron-updater's autoUpdater, wired once
 let updaterReady = false;    // an update is downloaded and waiting
 // where the background download stands, so the window can pick it up mid-way
+// Help → Update Automatically: on unless the writer turned it off on this
+// computer. Off, NEO doesn't look or download on its own, and a version
+// already downloaded waits instead of going in at quit; Check for Update…
+// still says what's out and links to it.
+const autoUpdateOn = () => readSettings().autoUpdate !== false;
 const upd = { state: 'idle', version: '', percent: 0, transferred: 0, total: 0, message: '' };
 function getUpdater() {
   if (updater || !app.isPackaged) return updater;
   const { autoUpdater } = require('electron-updater');
   autoUpdater.logger = null;
   autoUpdater.autoDownload = true;       // found it? fetch it — nobody should have to ask
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = autoUpdateOn();
   autoUpdater.on('update-available', (info) => {
     Object.assign(upd, { state: 'downloading', version: info && info.version || '', percent: 0, transferred: 0, total: 0, message: '' });
     sendToWindow({ type: 'update', ...upd });
@@ -2235,7 +2250,8 @@ async function latestReleaseFromGitHub() {
 ipcMain.handle('update:check', async () => {
   const currentVersion = app.getVersion();
   try {
-    const u = getUpdater();
+    // off: the plain look at GitHub, unless one is already downloaded
+    const u = autoUpdateOn() || updaterReady ? getUpdater() : null;
     if (u) {
       // already on its way (or already here): just say where it is
       if (!updaterReady && upd.state !== 'downloading') {
@@ -2304,7 +2320,7 @@ if (!app.requestSingleInstanceLock()) {
 const UPDATE_EVERY = 60 * 60 * 1000;
 function checkForUpdates() {
   if (!app.isPackaged) return;
-  const look = () => { lookForUpdate().catch(() => { /* logged in lookForUpdate */ }); };
+  const look = () => { if (autoUpdateOn()) lookForUpdate().catch(() => { /* logged in lookForUpdate */ }); };
   setTimeout(look, 8000);
   const timer = setInterval(look, UPDATE_EVERY);
   if (timer.unref) timer.unref();

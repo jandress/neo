@@ -6277,10 +6277,13 @@ function paneOutline() {
 // after the book changes shape (the Chapters pane redraws then too)
 function paneRefresh() {
   if (!book) return;
-  const name = paneTab();
+  // a tab this book can't put in the pane (a story's, in a novel) shows Comments
+  const name = paneCanHold(paneTab()) ? paneTab() : 'comments';
+  const view = $(PANE_VIEWS[name]);
+  if (!view) return;
   if (name === 'outline') paneOutline();
-  else if (name === 'darlings' && !$('#darlings-list').contains(document.activeElement)) renderDarlings();
-  else if (PANE_MORE[name] && PANE_MORE[name].render && !$(PANE_VIEWS[name]).contains(document.activeElement)) PANE_MORE[name].render();
+  else if (name === 'darlings' && !view.contains(document.activeElement)) renderDarlings();
+  else if (PANE_MORE[name] && PANE_MORE[name].render && !view.contains(document.activeElement)) PANE_MORE[name].render();
 }
 function openPane() {
   const pane = $('#side-pane');

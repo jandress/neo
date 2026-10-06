@@ -31,6 +31,8 @@ Type two hyphens and get an em dash — like that. The change happens immediatel
 
 Note: **there is no spellcheck while you write.** No red squiggles yelling WRONG at you while you're mid-thought about a made-up city with a made-up name. Your creative brain doesn't need a klaxon. When you're ready to check spelling, hit ⌘; and it'll turn on. Right-click the squiggles for suggestions. Hit ⌘; again to get back into the flow.
 
+**Hearing it.** ⌘⇧U (Ctrl+Shift+U; Ctrl+Shift+K on Linux), or Edit → Read Aloud, reads from the cursor in your computer's own voice, lighting each sentence as it goes. Esc, any key, or a click on the little chip at the bottom stops it, and the cursor waits where it stopped. Edit → Voice and Speed… picks the voice and the pace, with Try it to hear the sentence you're on. The ear catches what the eye skates over: repeated words, a sentence that runs out of breath.
+
 **Poetry Paragraph**
 
 A new feature added in v0.8.0: the "Poetry Paragraph." If you CTRL + SHIFT + ENTER (⌘⇧Enter on a Mac), you'll get an indented paragraph style, default italicized (but you can change it with CTRL + I). It lets you put quotes, poetry, alien chatter, spells being cast, etc. in your manuscript. You can even put a Poetry Paragraph BEFORE the start of a chapter. Just hit CTRL + SHIFT + ENTER from the chapter title. Or toggle any paragraph to a Poetry Paragraph in the Format menu.

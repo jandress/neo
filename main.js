@@ -1797,7 +1797,16 @@ function buildMenu() {
             checked: spellLanguage === code,
             click: () => sendToWindow({ type: 'spellLanguage', value: code })
           }))
-        }
+        },
+        { type: 'separator' },
+        {
+          label: t('Read Aloud'),
+          // Ctrl+Shift+U types a character by its code on Linux (#287)
+          accelerator: process.platform === 'linux' ? 'Ctrl+Shift+K' : 'CmdOrCtrl+Shift+U',
+          registerAccelerator: false, // the window answers the keys itself, while reading too
+          click: () => sendToWindow({ type: 'readAloud' })
+        },
+        { label: t('Voice and Speed…'), click: () => sendToWindow({ type: 'readAloudVoice' }) }
       ]
     },
     {

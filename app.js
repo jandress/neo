@@ -10034,6 +10034,13 @@ let readGen = 0;
 
 function readVoice() {
   const voices = window.speechSynthesis.getVoices();
+  // the writer's own pick, while this computer still has it
+  const chosen = library && library.readVoice ? voices.find((v) => v.voiceURI === library.readVoice) : null;
+  return chosen || readVoiceAuto();
+}
+// the voice for the writing language, as NEO picks it
+function readVoiceAuto() {
+  const voices = window.speechSynthesis.getVoices();
   const lang = writingLanguage().toLowerCase();
   const base = lang.split('-')[0];
   const by = (f) => voices.find(f);
@@ -10043,6 +10050,8 @@ function readVoice() {
     by((v) => v.lang.toLowerCase().startsWith(base)) ||
     by((v) => v.default) || voices[0] || null;
 }
+// how fast the voice goes: 1 is the voice's own pace
+const readRate = () => Math.min(2, Math.max(0.5, Number(library && library.readRate) || 1));
 async function readVoicesReady() {
   if (window.speechSynthesis.getVoices().length) return true;
   await new Promise((resolve) => {
@@ -10135,6 +10144,7 @@ async function toggleReadAloud() {
     reading.item = item;
     const u = new SpeechSynthesisUtterance(item.p.textContent.slice(item.a, item.b).trim());
     if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = writingLanguage();
+    u.rate = readRate();
     u.onstart = () => {
       if (!reading || reading.gen !== gen) return;
       const r = readRange(item.p, item.a, item.b);
@@ -10153,7 +10163,96 @@ async function toggleReadAloud() {
     window.speechSynthesis.speak(u);
   };
   window.speechSynthesis.cancel();
+  readChip(true);
   next();
+}
+// while the voice goes, a small chip at the foot of the window says so, and
+// stops it on a click
+function readChip(on) {
+  let chip = $('#read-chip');
+  if (!on) { if (chip) chip.hidden = true; return; }
+  if (!chip) {
+    chip = document.createElement('button');
+    chip.id = 'read-chip';
+    chip.type = 'button';
+    chip.onclick = () => stopReadAloud(true);
+    document.body.appendChild(chip);
+  }
+  chip.innerHTML = `<span class="rc-dot" aria-hidden="true"></span>${escHtml(t('Reading aloud'))}<span class="rc-key">${escHtml(t('Esc to stop'))}</span>`;
+  chip.hidden = false;
+}
+// Edit → Voice and Speed…: which of the computer's voices, and how fast;
+// the writing language's voices first, and a line to hear it
+async function readVoiceSettings() {
+  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance || !(await readVoicesReady())) {
+    toast(t('Read aloud needs a voice on this computer'));
+    return;
+  }
+  if (reading) stopReadAloud(false);
+  const voices = window.speechSynthesis.getVoices();
+  const base = writingLanguage().toLowerCase().split('-')[0];
+  const mine = voices.filter((v) => v.lang.toLowerCase().startsWith(base));
+  const rest = voices.filter((v) => !mine.includes(v));
+  const opt = (v) => `<option value="${escHtml(v.voiceURI)}">${escHtml(v.name)}${v.localService ? '' : ' ☁'} — ${escHtml(v.lang)}</option>`;
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.innerHTML = `
+    <div class="modal read-voice" style="width:440px">
+      <h2 style="font-size:16px">${escHtml(t('Read Aloud'))}</h2>
+      <label>${escHtml(t('Voice'))}<select class="rv-voice">
+        <option value="">${escHtml(t('Automatic (the writing language’s own)'))}</option>
+        ${mine.length ? `<optgroup label="${escHtml(t('In the writing language'))}">${mine.map(opt).join('')}</optgroup>` : ''}
+        ${rest.length ? `<optgroup label="${escHtml(t('Other languages'))}">${rest.map(opt).join('')}</optgroup>` : ''}
+      </select></label>
+      <label>${escHtml(t('Speed'))} <output class="rv-rate-out"></output><input class="rv-rate" type="range" min="0.5" max="2" step="0.05"></label>
+      <div style="text-align:right;margin-top:14px">
+        <button class="rv-try btn-quiet" style="float:left">${escHtml(t('Try it'))}</button>
+        <button class="m-cancel btn-quiet" style="margin-right:10px">${escHtml(t('Cancel'))}</button>
+        <button class="m-ok btn-gold">${escHtml(t('Save'))}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bd);
+  const $v = (c) => bd.querySelector(c);
+  const sel = $v('.rv-voice');
+  sel.value = library.readVoice && voices.some((v) => v.voiceURI === library.readVoice) ? library.readVoice : '';
+  const rate = $v('.rv-rate');
+  rate.value = String(readRate());
+  const showRate = () => { $v('.rv-rate-out').textContent = Number(rate.value).toFixed(2).replace(/0$/, '') + '×'; };
+  rate.oninput = showRate;
+  showRate();
+  // a line to hear: the sentence at the caret, or one of NEO's own
+  const sample = () => {
+    const sel2 = window.getSelection();
+    let el = sel2.rangeCount ? sel2.anchorNode : null;
+    if (el && el.nodeType === Node.TEXT_NODE) el = el.parentElement;
+    const p = el && el.closest ? el.closest('.chapter-body p, #aux-editor p') : null;
+    const text = p ? p.textContent.trim() : '';
+    if (text) {
+      const first = readSentences(p, 0)[0];
+      if (first) return p.textContent.slice(first[0], first[1]).trim();
+    }
+    return t('This is how your pages will sound, read aloud.');
+  };
+  $v('.rv-try').onclick = () => {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(sample());
+    const v = voices.find((x) => x.voiceURI === sel.value) || null;
+    if (v) { u.voice = v; u.lang = v.lang; } else { const auto = readVoiceAuto(); if (auto) { u.voice = auto; u.lang = auto.lang; } else u.lang = writingLanguage(); }
+    u.rate = Number(rate.value);
+    window.speechSynthesis.speak(u);
+  };
+  const done = async (save) => {
+    try { window.speechSynthesis.cancel(); } catch { /* nothing speaking */ }
+    bd.remove();
+    if (!save) return;
+    if (sel.value) library.readVoice = sel.value; else delete library.readVoice;
+    if (Math.abs(Number(rate.value) - 1) < 0.001) delete library.readRate; else library.readRate = Number(rate.value);
+    await writeLibrary(library);
+  };
+  $v('.m-ok').onclick = () => done(true);
+  $v('.m-cancel').onclick = () => done(false);
+  bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); } });
+  sel.focus();
 }
 // leaveCaret: the writer stopped it, so the caret goes to the sentence reached
 function stopReadAloud(leaveCaret) {
@@ -10161,6 +10260,7 @@ function stopReadAloud(leaveCaret) {
   reading = null;
   readGen++;
   try { window.speechSynthesis.cancel(); } catch { /* nothing speaking */ }
+  readChip(false);
   if (window.CSS && CSS.highlights) CSS.highlights.delete('neo-speak');
   if (leaveCaret && was && was.item && was.item.p.isConnected) {
     const ed = was.item.p.closest('.chapter-body, #aux-editor');
@@ -13077,6 +13177,8 @@ window.neo.onMenu(async (msg) => {
   if (msg.type === 'emailDraft') doEmailDraft();
   if (msg.type === 'emailSettings') emailSettings();
   if (msg.type === 'find') openSearch();
+  if (msg.type === 'readAloud' && book && !$('#editor-view').hidden) toggleReadAloud();
+  if (msg.type === 'readAloudVoice') readVoiceSettings();
   if (msg.type === 'spellcheck') toggleSpellcheck();
   if (msg.type === 'spellLanguage') changeSpellLanguage(msg.value);
   if (msg.type === 'reshelve') reshelveBook();

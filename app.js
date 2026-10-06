@@ -7226,6 +7226,29 @@ $('#side-head').addEventListener('contextmenu', (e) => {
   e.preventDefault();
   paneMenu(paneTab(), e.clientX, e.clientY, $('#side-head'));
 });
+// The outline's lines save when the writer leaves them. In the pane they can
+// stay focused for a long time, beside the page, so there they also save as
+// they're typed: closing the app with the caret on a line keeps its words.
+let paneLineTimer = null;
+$('#outline-list').addEventListener('input', (e) => {
+  if (!outlineInPane()) return;
+  const txt = e.target.closest && e.target.closest('.ol-text');
+  const line = txt && txt.closest('.ol-line');
+  if (!line) return;
+  clearTimeout(paneLineTimer);
+  paneLineTimer = setTimeout(() => {
+    if (!book || !txt.isConnected) return;
+    const chId = line.dataset.chId;
+    const val = txt.textContent.trim();
+    if (line.classList.contains('ol-chapter')) (book.chapterNotes = book.chapterNotes || {})[chId] = val;
+    else {
+      const sec = ((book.sectionNotes || {})[chId] || []).find((x) => x.id === line.dataset.secId);
+      if (!sec) return;
+      sec.text = val;
+    }
+    scheduleMetaSave();
+  }, 600);
+});
 // a pane that slides open shows what's current
 $('#side-pane').addEventListener('mouseenter', () => { if (book && paneTab() === 'darlings') paneRefresh(); });
 

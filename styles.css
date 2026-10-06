@@ -2263,3 +2263,27 @@ body.light #story-filter option { background: #fff; color: #333; }
 .subs-stand { font-size: 12.5px; color: #8d8778; margin: -6px 0 14px; }
 .subs-stand select { background: none; color: inherit; border: 1px solid #3a3a3a; border-radius: 4px; padding: 2px 4px; font: inherit; margin-left: 4px; }
 .subs-stand select option { background: #1e1e1e; color: #ddd; }
+/* read aloud: the chip while the voice goes, and its voice and speed */
+#read-chip {
+  position: fixed; left: 50%; bottom: 46px; transform: translateX(-50%); z-index: 50;
+  display: flex; align-items: center; gap: 8px;
+  background: #262626; color: #ddd; border: 1px solid #3a3a3a; border-radius: 999px;
+  padding: 6px 14px; font: 12px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); cursor: pointer;
+}
+#read-chip[hidden] { display: none; }
+#read-chip .rc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: rc-pulse 1.4s ease-in-out infinite; }
+#read-chip .rc-key { color: #8d8778; margin-left: 4px; }
+@keyframes rc-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { #read-chip .rc-dot { animation: none; } }
+body.light #read-chip { background: #fbf9f4; color: #333; border-color: #d8d2c6; }
+.read-voice label { display: block; font-size: 12.5px; color: #b9b2a2; margin-bottom: 12px; }
+.read-voice select {
+  display: block; width: 100%; margin-top: 5px; padding: 8px 10px; font: 13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  background: #161616; color: #ddd; border: 1px solid #333; border-radius: 6px;
+}
+.read-voice select:focus { outline: none; border-color: var(--accent); }
+body.light .read-voice select { background: #fff; border-color: #cfcac0; color: #1c1a17; }
+.read-voice input[type=range] { padding: 0; border: none; background: none; }
+.read-voice input[type=range] { display: block; width: 100%; margin-top: 6px; accent-color: var(--accent); }
+.read-voice output { color: var(--accent); margin-left: 4px; }

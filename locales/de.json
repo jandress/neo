@@ -724,5 +724,20 @@
   "Keep Left Pane Open": "Linke Leiste offen lassen",
   "Keep Right Pane Open": "Rechte Leiste offen lassen",
   "Enter — a new section · Backspace on an empty line removes it": "Enter – neuer Abschnitt · Rücktaste in einer leeren Zeile entfernt sie",
-  "What this story is about…": "Worum es in dieser Geschichte geht…"
+  "What this story is about…": "Worum es in dieser Geschichte geht…",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} Wort",
+    "other": "{n} / {goal} Wörter"
+  },
+  "anonymous": "anonym",
+  "Anonymous Manuscript PDF (.pdf)": "Anonymes Manuskript als PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Anonymes Manuskript als Word (.docx)",
+  "Change word goal…": "Wortziel ändern…",
+  "Click to change the story’s word goal": "Klicken, um das Wortziel der Geschichte zu ändern",
+  "Click to set a word goal for the story": "Klicken, um ein Wortziel für die Geschichte zu setzen",
+  "e.g. 1500 — blank removes the goal": "z. B. 1500 – leer entfernt das Ziel",
+  "e.g. 5000 — blank removes the goal": "z. B. 5000 – leer entfernt das Ziel",
+  "goal {n}": "Ziel {n}",
+  "Word goal for “{title}”": "Wortziel für „{title}“",
+  "Word goal for scene {n}": "Wortziel für Szene {n}"
 }

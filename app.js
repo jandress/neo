@@ -1783,7 +1783,7 @@ function bookTile(meta, opts = {}) {
       await stConvert(meta, choice === 'toStory');
     } else if (choice === 'export' && isShortStory(meta)) {
       const fmt = await optionModal(t('Export “{title}”', { title: meta.title }), null, [
-        { label: t('Manuscript Word (.docx)'), value: 'docx' }, { label: t('Text (.txt)'), value: 'txt' },
+        { label: t('Manuscript Word (.docx)'), value: 'docx' }, { label: t('Anonymous Manuscript Word (.docx)'), value: 'docx-anon' }, { label: t('Text (.txt)'), value: 'txt' },
         { label: t('Markdown (.md)'), value: 'md' }, { label: t('HTML (.html)'), value: 'html' }
       ]);
       if (!fmt) return;
@@ -6615,7 +6615,11 @@ function stCounters() {
   stNavUpdate();
   const n = bookWordCount();
   const cat = ST_CATEGORY()[stCategory(n)];
-  setText($('#word-counter'), t('{n} words', { n }) + ' · ' + cat);
+  const goal = book.wordGoal || 0;
+  const wc = $('#word-counter');
+  setText(wc, (goal ? t('{n} / {goal} words', { n, goal: fmtNum(goal) }) : t('{n} words', { n })) + ' · ' + cat);
+  wc.classList.toggle('st-over', !!goal && n > goal);
+  wc.title = goal ? t('Click to change the story’s word goal') : t('Click to set a word goal for the story');
   setText($('#pos-counter'), t('page {p} of {total}', { p: stCurrentPage(), total: stLayout.pages }));
   const words = $('#tp-words');
   if (words) {
@@ -6677,6 +6681,7 @@ function stEditorMode() {
     if (add) add.hidden = true;
   }
   stTitlePage(on);
+  if (!on) { $('#word-counter').classList.remove('st-over'); $('#word-counter').removeAttribute('title'); }
   stReportState();
 }
 function stReportState() {
@@ -6760,6 +6765,65 @@ function stSetSceneNote(k, val) {
   syncChapter(chapterBodyEl(chId), chId);
   scheduleMetaSave();
 }
+// ---- word goals: the story's (the book's own goal, the one the cover's
+// progress bar shows) and each scene's. A scene's goal is kept by the id its
+// outline note has (book.sceneGoals); the first scene, until it has a note of
+// its own, keeps its goal under 'first', as it keeps the chapter's note.
+function stSceneGoalKey(k, create) {
+  const chId = stChapter();
+  const sg = stScenes()[k];
+  if (!sg) return null;
+  if (sg.id) return sg.id;
+  if (k === 0) return 'first';
+  if (!create) return null;
+  // a scene with no note gets one (blank) to carry its goal, the way a
+  // note written in the pane gets one
+  const anchor = sg.ps.find((p) => !p.classList.contains('ghost'));
+  if (!anchor) return null;
+  const sec = { id: newSectionId(), text: '' };
+  anchor.dataset.secId = sec.id;
+  book.sectionNotes = book.sectionNotes || {};
+  (book.sectionNotes[chId] = book.sectionNotes[chId] || []).push(sec);
+  orderSectionNotes(chId);
+  syncChapter(chapterBodyEl(chId), chId);
+  return sec.id;
+}
+function stSceneGoal(k) {
+  const key = stSceneGoalKey(k, false);
+  return key ? (book.sceneGoals || {})[key] || 0 : 0;
+}
+const stGoalNumber = (v) => Math.max(0, parseInt(String(v || '').replace(/[^\d]/g, ''), 10) || 0);
+async function stEditSceneGoal(k) {
+  const now = stSceneGoal(k);
+  const v = await askInput(t('Word goal for scene {n}', { n: k + 1 }), t('e.g. 1500 — blank removes the goal'), now ? String(now) : '');
+  if (v === null || !book || !isShortStory()) return;
+  const n = stGoalNumber(v);
+  const key = stSceneGoalKey(k, n > 0);
+  if (!key) return;
+  book.sceneGoals = book.sceneGoals || {};
+  if (n) book.sceneGoals[key] = n; else delete book.sceneGoals[key];
+  scheduleMetaSave();
+  renderNav();
+}
+async function stEditStoryGoal() {
+  const v = await askInput(t('Word goal for “{title}”', { title: isUntitled(book.title) ? t('Untitled') : book.title }), t('e.g. 5000 — blank removes the goal'), book.wordGoal ? String(book.wordGoal) : '');
+  if (v === null || !book || !isShortStory()) return;
+  book.wordGoal = stGoalNumber(v);
+  scheduleMetaSave();
+  updateCounters();
+}
+// a count beside its goal: "929 / 1,500", lit once it's past the goal
+function stGoalText(el, words, goal) {
+  setText(el, goal ? `${fmtNum(words)} / ${fmtNum(goal)}` : (words ? fmtNum(words) : ''));
+  el.classList.toggle('st-over', !!goal && words > goal);
+}
+// the counter, clicked in a story: the story's goal
+$('#word-counter').addEventListener('click', (e) => {
+  if (!book || !isShortStory()) return;
+  e.stopImmediatePropagation();
+  stEditStoryGoal();
+}, true);
+
 let stNavSig = '';
 function renderStoryNav() {
   const list = $('#nav-list');
@@ -6780,8 +6844,15 @@ function renderStoryNav() {
     item.innerHTML = `<div class="n-row" title="${t('Drag to move the scene')}"><span class="n-num"></span><span class="n-label"></span><span class="n-words"></span></div>`;
     item.querySelector('.n-num').textContent = String(k + 1);
     item.querySelector('.n-label').textContent = sg.first || t('not written yet');
-    item.querySelector('.n-words').textContent = sg.words ? fmtNum(sg.words) : '';
+    stGoalText(item.querySelector('.n-words'), sg.words, stSceneGoal(k));
     const row = item.querySelector('.n-row');
+    // right-click: the scene's goal
+    item.addEventListener('contextmenu', async (e) => {
+      if (e.target.closest('.nav-note[contenteditable="true"]')) return;
+      e.preventDefault();
+      const pick = await popMenu(e.clientX, e.clientY, [{ label: stSceneGoal(k) ? t('Change word goal…') : t('Set word goal…'), value: 'goal' }], { from: row });
+      if (pick === 'goal') stEditSceneGoal(k);
+    });
     if (!IS_POCKET) {
       row.draggable = true;
       row.addEventListener('dragstart', (e) => {
@@ -6825,7 +6896,8 @@ function renderStoryNav() {
       updateCounters();
       if (IS_POCKET && $('#nav-pane').dataset.pinned !== '1') $('#nav-pane').classList.remove('open');
     };
-    pressable(row, [String(k + 1), sg.first, sg.words ? t('{n} words', { n: sg.words }) : ''].filter(Boolean).join(', '));
+    const goal = stSceneGoal(k);
+    pressable(row, [String(k + 1), sg.first, sg.words ? t('{n} words', { n: sg.words }) : '', goal ? t('goal {n}', { n: fmtNum(goal) }) : ''].filter(Boolean).join(', '));
     list.appendChild(item);
   });
 }
@@ -6937,7 +7009,9 @@ function storyTile(el, meta) {
 
 // ---- out of NEO: the manuscript as PDF or Word, in manuscript format ----
 // the open story, as stPdfHtml and stDocxEntries take it
-function stManuscript() {
+// anonymous: for markets and contests that read blind, no name anywhere: no
+// contact block, no byline, and a running head of keywords and page alone
+function stManuscript(anonymous = false) {
   const n = bookWordCount();
   const r = stRoundWords(n);
   const title = isUntitled(book.title) ? t('Untitled') : book.title;
@@ -6953,11 +7027,11 @@ function stManuscript() {
   while (paras.length && paras[paras.length - 1].sceneBreak) paras.pop();
   return {
     font: stFont(),
-    contact: library.scriptContact || '',
+    contact: anonymous ? '' : (library.scriptContact || ''),
     words: n < 100 ? t('{n} words', { n: r }) : t('about {n} words', { n: r }),
     title,
-    byline: book.author ? t('by') + ' ' + book.author : '',
-    head: stHead(book.author, isUntitled(book.title) ? '' : book.title, book.storyHeader || ''),
+    byline: !anonymous && book.author ? t('by') + ' ' + book.author : '',
+    head: stHead(anonymous ? '' : book.author, isUntitled(book.title) ? '' : book.title, book.storyHeader || ''),
     end: t('END'),
     paras
   };
@@ -6985,15 +7059,15 @@ async function stFontFaces() {
   }
   return css;
 }
-async function stPdf() { return stPdfHtml(stManuscript(), await stFontFaces()); }
+async function stPdf(anonymous = false) { return stPdfHtml(stManuscript(anonymous), await stFontFaces()); }
 // PDF and Word leave in manuscript format; the other formats are a book's
-async function stExport(format) {
+async function stExport(format, anonymous = false) {
   flushAllSaves();
-  const defaultName = safeName(book.title);
+  const defaultName = safeName(book.title) + (anonymous ? '-' + safeName(t('anonymous')) : '');
   try {
     const payload = format === 'pdf'
-      ? { format: 'pdf', defaultName, content: await stPdf(), print: 'manuscript' }
-      : { format: 'docx', defaultName, zipEntries: stDocxEntries(stManuscript()) };
+      ? { format: 'pdf', defaultName, content: await stPdf(anonymous), print: 'manuscript' }
+      : { format: 'docx', defaultName, zipEntries: stDocxEntries(stManuscript(anonymous)) };
     const saved = await window.neo.exportSave(payload);
     if (saved) toast(t('Exported: {file}', { file: saved.split('/').pop() }));
   } catch (err) {
@@ -13668,6 +13742,7 @@ async function doExport(format, chId = null) {
   if (isScript()) { await spExport(['pdf', 'fdx'].includes(format) ? format : 'fountain'); return; }
   // a story's PDF and Word file go out in manuscript format
   if (isShortStory() && !chId && (format === 'pdf' || format === 'docx')) { await stExport(format); return; }
+  if (isShortStory() && !chId && (format === 'pdf-anon' || format === 'docx-anon')) { await stExport(format.slice(0, -5), true); return; }
   flushAllSaves();
   const one = chId ? chapterExportData(chId) : null;
   if (chId && !one) return;

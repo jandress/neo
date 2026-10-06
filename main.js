@@ -1792,6 +1792,11 @@ function buildMenu() {
             // a story's PDF and Word file are its manuscript
             { label: storyState.on ? t('Manuscript PDF (.pdf)') : 'PDF (.pdf)', click: () => sendToWindow({ type: 'export', format: 'pdf' }) },
             { label: storyState.on ? t('Manuscript Word (.docx)') : 'Word (.docx)', click: () => sendToWindow({ type: 'export', format: 'docx' }) },
+            // for markets and contests that read blind: no name anywhere
+            ...(storyState.on ? [
+              { label: t('Anonymous Manuscript PDF (.pdf)'), click: () => sendToWindow({ type: 'export', format: 'pdf-anon' }) },
+              { label: t('Anonymous Manuscript Word (.docx)'), click: () => sendToWindow({ type: 'export', format: 'docx-anon' }) }
+            ] : []),
             { label: 'EPUB (.epub)', click: () => sendToWindow({ type: 'export', format: 'epub' }) },
             { type: 'separator' },
             {

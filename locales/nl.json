@@ -721,5 +721,20 @@
   "Keep Left Pane Open": "Linkerpaneel open houden",
   "Keep Right Pane Open": "Rechterpaneel open houden",
   "Enter — a new section · Backspace on an empty line removes it": "Enter — een nieuwe sectie · Backspace op een lege regel verwijdert die",
-  "What this story is about…": "Waar dit verhaal over gaat…"
+  "What this story is about…": "Waar dit verhaal over gaat…",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} woord",
+    "other": "{n} / {goal} woorden"
+  },
+  "anonymous": "anoniem",
+  "Anonymous Manuscript PDF (.pdf)": "Anoniem manuscript als pdf (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Anoniem manuscript als Word (.docx)",
+  "Change word goal…": "Woorddoel wijzigen…",
+  "Click to change the story’s word goal": "Klik om het woorddoel van het verhaal te wijzigen",
+  "Click to set a word goal for the story": "Klik om een woorddoel voor het verhaal te kiezen",
+  "e.g. 1500 — blank removes the goal": "bijv. 1500 — leeg verwijdert het doel",
+  "e.g. 5000 — blank removes the goal": "bijv. 5000 — leeg verwijdert het doel",
+  "goal {n}": "doel {n}",
+  "Word goal for “{title}”": "Woorddoel voor ‘{title}’",
+  "Word goal for scene {n}": "Woorddoel voor scène {n}"
 }

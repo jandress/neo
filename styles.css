@@ -2085,3 +2085,5 @@ body.night #paper.story #tp-author { color: var(--ink); }
 #nav-pane .nav-item.st-scene .n-words { margin-left: auto; flex-shrink: 0; }
 #nav-pane .nav-item.st-scene.unwritten .n-label { font-style: italic; opacity: 0.6; }
 body.light #nav-pane .nav-item.st-scene .n-num { color: #8f8a80; }
+/* a story's counts against their goals: gold once past it */
+#nav-pane .nav-item.st-scene .n-words.st-over, #word-counter.st-over { color: var(--accent); }

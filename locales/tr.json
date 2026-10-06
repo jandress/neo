@@ -663,5 +663,17 @@
   "Keep Left Pane Open": "Sol paneli açık tut",
   "Keep Right Pane Open": "Sağ paneli açık tut",
   "Enter — a new section · Backspace on an empty line removes it": "Enter — yeni bölüm · Boş satırda Backspace onu siler",
-  "What this story is about…": "Bu öykü ne anlatıyor…"
+  "What this story is about…": "Bu öykü ne anlatıyor…",
+  "{n} / {goal} words": "{n} / {goal} kelime",
+  "anonymous": "anonim",
+  "Anonymous Manuscript PDF (.pdf)": "Anonim el yazması PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Anonim el yazması Word (.docx)",
+  "Change word goal…": "Kelime hedefini değiştir…",
+  "Click to change the story’s word goal": "Öykünün kelime hedefini değiştirmek için tıklayın",
+  "Click to set a word goal for the story": "Öykü için bir kelime hedefi koymak için tıklayın",
+  "e.g. 1500 — blank removes the goal": "örn. 1500 — boş bırakmak hedefi kaldırır",
+  "e.g. 5000 — blank removes the goal": "örn. 5000 — boş bırakmak hedefi kaldırır",
+  "goal {n}": "hedef {n}",
+  "Word goal for “{title}”": "“{title}” için kelime hedefi",
+  "Word goal for scene {n}": "{n}. sahne için kelime hedefi"
 }

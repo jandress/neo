@@ -157,3 +157,16 @@ test('other files are not read as stories', () => {
   const novel = [...P('Jo Writer', 'about 90,000 words', 'The Long Book', 'by Jo Writer', 'One.'), { text: 'Two.', pageBreak: true }, { text: 'Three.', pageBreak: true }];
   assert.equal(mctx.readManuscript(novel), null, 'a novel stays a book');
 });
+
+test('an anonymous manuscript carries no name: no contact, no byline, a head of keywords alone', () => {
+  assert.equal(st.stHead('', 'Every Light in the House', ''), 'Every Light');
+  assert.equal(st.stHead('', 'Every Light in the House', 'Lights'), 'Lights');
+  const anon = { ...sample(), contact: '', byline: '', head: st.stHead('', 'The Harbor at Night', '') };
+  const html = st.stPdfHtml(anon, '');
+  assert.ok(!/Crow|Jo Writer/.test(html));
+  assert.match(html, /@top-right \{ content: "Harbor \/ " counter\(page\)/);
+  const doc = Object.fromEntries(st.stDocxEntries(anon).map((e) => [e.path, e.content]));
+  assert.ok(!/Crow|Jo Writer/.test(doc['word/document.xml'] + doc['word/header1.xml']));
+  assert.match(doc['word/document.xml'], /about 4,300 words/, 'the count stays');
+  assert.match(doc['word/document.xml'], /w:before="5040"/, 'the title still eleven lines down');
+});

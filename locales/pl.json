@@ -764,5 +764,22 @@
   "Keep Left Pane Open": "Zostaw lewy panel otwarty",
   "Keep Right Pane Open": "Zostaw prawy panel otwarty",
   "Enter — a new section · Backspace on an empty line removes it": "Enter — nowa sekcja · Backspace w pustym wierszu usuwa go",
-  "What this story is about…": "O czym jest to opowiadanie…"
+  "What this story is about…": "O czym jest to opowiadanie…",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} słowo",
+    "few": "{n} / {goal} słowa",
+    "many": "{n} / {goal} słów",
+    "other": "{n} / {goal} słowa"
+  },
+  "anonymous": "anonimowy",
+  "Anonymous Manuscript PDF (.pdf)": "Anonimowy maszynopis w PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Anonimowy maszynopis w Wordzie (.docx)",
+  "Change word goal…": "Zmień cel słów…",
+  "Click to change the story’s word goal": "Kliknij, aby zmienić cel słów opowiadania",
+  "Click to set a word goal for the story": "Kliknij, aby ustawić cel słów dla opowiadania",
+  "e.g. 1500 — blank removes the goal": "np. 1500 — puste usuwa cel",
+  "e.g. 5000 — blank removes the goal": "np. 5000 — puste usuwa cel",
+  "goal {n}": "cel {n}",
+  "Word goal for “{title}”": "Cel słów dla „{title}”",
+  "Word goal for scene {n}": "Cel słów dla sceny {n}"
 }

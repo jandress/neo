@@ -334,6 +334,10 @@ function libName(name) {
   return name;
 }
 
+// A work's folder is book-…, or story-… for a short story, so the library
+// reads true in Finder; anything that walks the library knows both
+const isWorkFolder = (d) => d.startsWith('book-') || d.startsWith('story-');
+
 function bookDir(bookId) {
   return path.join(LIBRARY_DIR, libName(bookId));
 }
@@ -350,7 +354,7 @@ function writeCatalog() {
     }
     const lines = [];
     for (const d of fs.readdirSync(LIBRARY_DIR)) {
-      if (!d.startsWith('book-')) continue;
+      if (!isWorkFolder(d)) continue;
       try {
         const m = JSON.parse(fs.readFileSync(path.join(LIBRARY_DIR, d, 'book.json'), 'utf8'));
         lines.push(`${m.title || t('Untitled')}  —  ${d}  —  ${t('shelf:')} ${onShelf[m.id] || t('(none — removed from shelves)')}`);
@@ -472,7 +476,7 @@ ipcMain.handle('library:read', () => {
   const ids = [];
   try {
     for (const d of fs.readdirSync(LIBRARY_DIR)) {
-      if (d.startsWith('book-') && fs.existsSync(path.join(LIBRARY_DIR, d, 'chapters'))) ids.push(d);
+      if (isWorkFolder(d) && fs.existsSync(path.join(LIBRARY_DIR, d, 'chapters'))) ids.push(d);
     }
   } catch { /* empty */ }
   const seed = { authorName: '', penNames: [], firstRunDone: ids.length > 0, pageTheme: 'night',
@@ -497,7 +501,7 @@ ipcMain.handle('book:create', (_e, meta) => {
   // first, so "Capítulo" reads "capitulo", not "cap-tulo"
   const slug = String(meta.title || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
-  const id = 'book-' + (slug ? slug + '-' : '') +
+  const id = (meta.folder === 'story' ? 'story-' : 'book-') + (slug ? slug + '-' : '') +
     Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
   const dir = bookDir(id);
   fs.mkdirSync(path.join(dir, 'chapters'), { recursive: true });
@@ -526,7 +530,7 @@ ipcMain.handle('library:listBooks', () => {
   const out = [];
   try {
     for (const d of fs.readdirSync(LIBRARY_DIR)) {
-      if (!d.startsWith('book-')) continue;
+      if (!isWorkFolder(d)) continue;
       const m = readJSON(path.join(LIBRARY_DIR, d, 'book.json'), null);
       if (m && m.id) out.push({ id: m.id, title: m.title || t('Untitled'), author: m.author || '', modified: m.modified || '', kind: m.kind || '' });
     }

@@ -95,6 +95,15 @@ describe('filesystem', { concurrency: 1 }, () => {
       assert.match(blank.id, /^book-[0-9a-z]+-[0-9a-z]{5}$/);
       assert.equal(blank.title, 'Untitled');
       assert.equal(blank.author, 'Anonymous');
+
+      // a short story's folder says so; the rest of the library still finds it
+      const story = main.call('book:create', { title: 'The Harbor', folder: 'story' });
+      assert.match(story.id, /^story-the-harbor-[0-9a-z]+-[0-9a-z]{5}$/);
+      assert.ok(main.call('library:listBooks').some((b) => b.id === story.id), 'Reshelve lists it');
+      main.call('library:write', { shelves: [] });
+      assert.match(fs.readFileSync(path.join(dir, '_catalog.txt'), 'utf8'), new RegExp(story.id));
+      // anything else asked for is a book
+      assert.match(main.call('book:create', { title: 'X', folder: '../evil' }).id, /^book-x-/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

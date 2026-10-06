@@ -720,5 +720,7 @@
   "Contact Details…": "Dados de contato…",
   "Your legal name and how to reach you, for scripts and stories": "Seu nome civil e como falar com você, para roteiros e contos",
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Seu nome civil e como falar com você, um item por linha. Vai na folha de rosto de cada roteiro e na primeira página de cada conto.",
-  "Drag to move the scene": "Arraste para mover a cena"
+  "Drag to move the scene": "Arraste para mover a cena",
+  "Keep Left Pane Open": "Manter o painel esquerdo aberto",
+  "Keep Right Pane Open": "Manter o painel direito aberto"
 }

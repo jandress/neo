@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('neo', {
   openRelease: () => ipcRenderer.invoke('update:openRelease'),
 
   poetryState: (on) => ipcRenderer.send('poetry:state', on),
+  panesState: (st) => ipcRenderer.send('panes:state', st),
   flushState: (on) => ipcRenderer.send('flush:state', on),
   scriptState: (st) => ipcRenderer.send('script:state', st),
   storyState: (st) => ipcRenderer.send('story:state', st),

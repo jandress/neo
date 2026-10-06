@@ -158,7 +158,7 @@ Everything is saved automatically, constantly, into plain ordinary files in a fo
 
 **Updates**
 
-NEO keeps itself current: it looks for a new version now and then, downloads it quietly, and puts it in the next time you quit. To decide for yourself, uncheck Help → Update Automatically; Help → Check for Update… still tells you what's out and links to it.
+NEO keeps itself current: it looks for a new version now and then, downloads it quietly, and puts it in the next time you quit. To decide for yourself, uncheck Help → Update Automatically: NEO stops looking on its own, and Help → Check for Update… tells you what's out and offers to download and install it when you say so.
 
 **That's it**
 

@@ -2332,9 +2332,9 @@ let updater = null;          // electron-updater's autoUpdater, wired once
 let updaterReady = false;    // an update is downloaded and waiting
 // where the background download stands, so the window can pick it up mid-way
 // Help → Update Automatically: on unless the writer turned it off on this
-// computer. Off, NEO doesn't look or download on its own, and a version
-// already downloaded waits instead of going in at quit; Check for Update…
-// still says what's out and links to it.
+// computer. Off, NEO asks first: it doesn't look or download on its own, a
+// version already downloaded waits instead of going in at quit, and Check
+// for Update… says what's out and offers to download and install it.
 const autoUpdateOn = () => readSettings().autoUpdate !== false;
 const upd = { state: 'idle', version: '', percent: 0, transferred: 0, total: 0, message: '' };
 function getUpdater() {
@@ -2344,7 +2344,8 @@ function getUpdater() {
   autoUpdater.autoDownload = true;       // found it? fetch it — nobody should have to ask
   autoUpdater.autoInstallOnAppQuit = autoUpdateOn();
   autoUpdater.on('update-available', (info) => {
-    Object.assign(upd, { state: 'downloading', version: info && info.version || '', percent: 0, transferred: 0, total: 0, message: '' });
+    // found, and fetched only if NEO may (otherwise it waits to be asked)
+    Object.assign(upd, { state: autoUpdater.autoDownload ? 'downloading' : 'available', version: info && info.version || '', percent: 0, transferred: 0, total: 0, message: '' });
     sendToWindow({ type: 'update', ...upd });
   });
   autoUpdater.on('download-progress', (p) => {
@@ -2374,6 +2375,7 @@ function lookForUpdate() {
   const u = getUpdater();
   if (!u) return Promise.resolve(null);
   if (updaterReady || upd.state === 'downloading') return Promise.resolve(null);
+  u.autoDownload = autoUpdateOn();
   if (!updateLook) {
     updateLook = u.checkForUpdates()
       .catch((err) => { logError('updater', err); throw err; })
@@ -2396,8 +2398,7 @@ async function latestReleaseFromGitHub() {
 ipcMain.handle('update:check', async () => {
   const currentVersion = app.getVersion();
   try {
-    // off: the plain look at GitHub, unless one is already downloaded
-    const u = autoUpdateOn() || updaterReady ? getUpdater() : null;
+    const u = getUpdater();
     if (u) {
       // already on its way (or already here): just say where it is
       if (!updaterReady && upd.state !== 'downloading') {
@@ -2405,7 +2406,7 @@ ipcMain.handle('update:check', async () => {
         const result = await lookForUpdate();
         const v = result && result.updateInfo && result.updateInfo.version || '';
         if (v && compareVersions(v, currentVersion) > 0 && upd.state === 'idle') {
-          Object.assign(upd, { state: 'downloading', version: v });
+          Object.assign(upd, { state: autoUpdateOn() ? 'downloading' : 'available', version: v });
         }
       }
       latestReleaseFromGitHub().catch(() => {}); // the release link, for the fallback button
@@ -2428,6 +2429,20 @@ ipcMain.handle('update:check', async () => {
     logError('update', err);
     return { error: true };
   }
+});
+
+// the writer said yes to one NEO found while it was asking first
+ipcMain.handle('update:download', () => {
+  const u = getUpdater();
+  if (!u || updaterReady || upd.state !== 'available') return false;
+  Object.assign(upd, { state: 'downloading', percent: 0, transferred: 0, total: 0, message: '' });
+  sendToWindow({ type: 'update', ...upd });
+  u.downloadUpdate().catch((err) => {
+    logError('updater', err);
+    Object.assign(upd, { state: 'error', message: String(err && err.message || err) });
+    sendToWindow({ type: 'update', ...upd });
+  });
+  return true;
 });
 
 ipcMain.handle('update:install', () => {

@@ -6608,6 +6608,9 @@ function stEditorMode() {
   $('#paper').style.setProperty('--st-font', ST_FONTS[stFont()]);
   $('#paper').style.setProperty('--st-by', JSON.stringify(t('by') + ' '));
   $('#paper').style.setProperty('--st-end', JSON.stringify(t('END')));
+  // the outline's first line is the story's own note, not a chapter's
+  if (on) $('#editor-view').style.setProperty('--ph-ol-chapter', JSON.stringify(t('What this story is about…')));
+  else $('#editor-view').style.removeProperty('--ph-ol-chapter');
   if (on) {
     applyPageZoom();
     const tabM = $('.tab[data-tab="manuscript"]');

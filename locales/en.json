@@ -57,5 +57,9 @@
   "{n} stories imported onto “{shelf}”, in manuscript format": {
     "one": "{n} story imported onto “{shelf}”, in manuscript format",
     "other": "{n} stories imported onto “{shelf}”, in manuscript format"
+  },
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} word",
+    "other": "{n} / {goal} words"
   }
 }

@@ -2115,3 +2115,5 @@ body.light #nav-pane .nav-item.st-scene .n-num { color: #8f8a80; }
 body.light #pane-view { color: #2a2824; }
 /* Notes & Comments as a tab of its own, on the page */
 #aux-paper > #sticky-list .sticky { margin: 0 0 14px; }
+/* a story's counts against their goals: gold once past it */
+#nav-pane .nav-item.st-scene .n-words.st-over, #word-counter.st-over { color: var(--accent); }

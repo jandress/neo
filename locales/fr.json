@@ -729,5 +729,20 @@
   "What this story is about…": "De quoi parle cette nouvelle…",
   "Back to the Page": "Revenir sur la page",
   "Comments": "Commentaires",
-  "Show in the Right Pane": "Afficher dans le panneau droit"
+  "Show in the Right Pane": "Afficher dans le panneau droit",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} mot",
+    "other": "{n} / {goal} mots"
+  },
+  "anonymous": "anonyme",
+  "Anonymous Manuscript PDF (.pdf)": "Manuscrit anonyme en PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Manuscrit anonyme en Word (.docx)",
+  "Change word goal…": "Changer l’objectif de mots…",
+  "Click to change the story’s word goal": "Cliquez pour changer l’objectif de mots de la nouvelle",
+  "Click to set a word goal for the story": "Cliquez pour fixer un objectif de mots pour la nouvelle",
+  "e.g. 1500 — blank removes the goal": "ex. 1500 — vide supprime l’objectif",
+  "e.g. 5000 — blank removes the goal": "ex. 5000 — vide supprime l’objectif",
+  "goal {n}": "objectif {n}",
+  "Word goal for “{title}”": "Objectif de mots pour « {title} »",
+  "Word goal for scene {n}": "Objectif de mots pour la scène {n}"
 }

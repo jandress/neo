@@ -760,5 +760,21 @@
   "What this story is about…": "Despre ce este povestirea…",
   "Back to the Page": "Înapoi pe pagină",
   "Comments": "Comentarii",
-  "Show in the Right Pane": "Arată în panoul din dreapta"
+  "Show in the Right Pane": "Arată în panoul din dreapta",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} cuvânt",
+    "few": "{n} / {goal} cuvinte",
+    "other": "{n} / {goal} de cuvinte"
+  },
+  "anonymous": "anonim",
+  "Anonymous Manuscript PDF (.pdf)": "Manuscris anonim PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Manuscris anonim Word (.docx)",
+  "Change word goal…": "Schimbă ținta de cuvinte…",
+  "Click to change the story’s word goal": "Clic pentru a schimba ținta de cuvinte a povestirii",
+  "Click to set a word goal for the story": "Clic pentru a stabili o țintă de cuvinte pentru povestire",
+  "e.g. 1500 — blank removes the goal": "ex. 1500 — gol elimină ținta",
+  "e.g. 5000 — blank removes the goal": "ex. 5000 — gol elimină ținta",
+  "goal {n}": "țintă {n}",
+  "Word goal for “{title}”": "Ținta de cuvinte pentru „{title}”",
+  "Word goal for scene {n}": "Ținta de cuvinte pentru scena {n}"
 }

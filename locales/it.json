@@ -727,5 +727,20 @@
   "What this story is about…": "Di cosa parla questo racconto…",
   "Back to the Page": "Torna sulla pagina",
   "Comments": "Commenti",
-  "Show in the Right Pane": "Mostra nel pannello destro"
+  "Show in the Right Pane": "Mostra nel pannello destro",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} parola",
+    "other": "{n} / {goal} parole"
+  },
+  "anonymous": "anonimo",
+  "Anonymous Manuscript PDF (.pdf)": "Manoscritto anonimo in PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Manoscritto anonimo in Word (.docx)",
+  "Change word goal…": "Cambia obiettivo di parole…",
+  "Click to change the story’s word goal": "Fai clic per cambiare l’obiettivo di parole del racconto",
+  "Click to set a word goal for the story": "Fai clic per fissare un obiettivo di parole per il racconto",
+  "e.g. 1500 — blank removes the goal": "es. 1500 — vuoto rimuove l’obiettivo",
+  "e.g. 5000 — blank removes the goal": "es. 5000 — vuoto rimuove l’obiettivo",
+  "goal {n}": "obiettivo {n}",
+  "Word goal for “{title}”": "Obiettivo di parole per «{title}»",
+  "Word goal for scene {n}": "Obiettivo di parole per la scena {n}"
 }

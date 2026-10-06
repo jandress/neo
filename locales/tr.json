@@ -666,5 +666,17 @@
   "What this story is about…": "Bu öykü ne anlatıyor…",
   "Back to the Page": "Sayfaya geri al",
   "Comments": "Yorumlar",
-  "Show in the Right Pane": "Sağ panelde göster"
+  "Show in the Right Pane": "Sağ panelde göster",
+  "{n} / {goal} words": "{n} / {goal} kelime",
+  "anonymous": "anonim",
+  "Anonymous Manuscript PDF (.pdf)": "Anonim el yazması PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Anonim el yazması Word (.docx)",
+  "Change word goal…": "Kelime hedefini değiştir…",
+  "Click to change the story’s word goal": "Öykünün kelime hedefini değiştirmek için tıklayın",
+  "Click to set a word goal for the story": "Öykü için bir kelime hedefi koymak için tıklayın",
+  "e.g. 1500 — blank removes the goal": "örn. 1500 — boş bırakmak hedefi kaldırır",
+  "e.g. 5000 — blank removes the goal": "örn. 5000 — boş bırakmak hedefi kaldırır",
+  "goal {n}": "hedef {n}",
+  "Word goal for “{title}”": "“{title}” için kelime hedefi",
+  "Word goal for scene {n}": "{n}. sahne için kelime hedefi"
 }

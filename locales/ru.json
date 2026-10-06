@@ -785,5 +785,22 @@
   "What this story is about…": "О чём этот рассказ…",
   "Back to the Page": "Вернуть на страницу",
   "Comments": "Комментарии",
-  "Show in the Right Pane": "Показать в правой панели"
+  "Show in the Right Pane": "Показать в правой панели",
+  "{n} / {goal} words": {
+    "one": "{n} / {goal} слово",
+    "few": "{n} / {goal} слова",
+    "many": "{n} / {goal} слов",
+    "other": "{n} / {goal} слова"
+  },
+  "anonymous": "анонимно",
+  "Anonymous Manuscript PDF (.pdf)": "Анонимная рукопись в PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Анонимная рукопись в Word (.docx)",
+  "Change word goal…": "Изменить цель по словам…",
+  "Click to change the story’s word goal": "Нажмите, чтобы изменить цель по словам для рассказа",
+  "Click to set a word goal for the story": "Нажмите, чтобы задать цель по словам для рассказа",
+  "e.g. 1500 — blank removes the goal": "напр. 1500 — пусто убирает цель",
+  "e.g. 5000 — blank removes the goal": "напр. 5000 — пусто убирает цель",
+  "goal {n}": "цель {n}",
+  "Word goal for “{title}”": "Цель по словам для «{title}»",
+  "Word goal for scene {n}": "Цель по словам для сцены {n}"
 }

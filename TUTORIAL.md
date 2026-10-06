@@ -124,7 +124,11 @@ From page two on, the top right of every page reads Surname / Keyword / page. NE
 
 The Chapters pane lists your scenes instead of chapters: each one's opening words, its length, and a line for a note (the same note its card shows on the Outline). Click a scene to jump to it, drag it to move it, break and note and all; ⌘Z puts it back. The Outline tab shows the story as cards, one per section, and + Section adds another.
 
-**File → Export** makes a manuscript PDF or Word file ready to send. The Word file has a real header, so an editor's changes won't knock the page numbers out of place. ⌘E emails you the manuscript PDF. A shelf of stories binds into a collection, each story under its own title.
+**File → Export** makes a manuscript PDF or Word file ready to send. For a market or contest that reads blind, choose Anonymous Manuscript: it leaves out your contact block and byline, and the running head drops your surname.
+
+Click the word count at the bottom to give the story a word goal (a market's limit, say); the count shows against it and turns gold once you're over. Right-click a scene in the Scenes pane to give that scene a goal of its own, and the pane shows each scene's words against its goal.
+
+The Word file has a real header, so an editor's changes won't knock the page numbers out of place. ⌘E emails you the manuscript PDF. A shelf of stories binds into a collection, each story under its own title.
 
 **Getting your book out**
 

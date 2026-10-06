@@ -665,5 +665,17 @@
   "What this story is about…": "Τι πραγματεύεται αυτό το διήγημα…",
   "Back to the Page": "Πίσω στη σελίδα",
   "Comments": "Σχόλια",
-  "Show in the Right Pane": "Εμφάνιση στο δεξί πλαίσιο"
+  "Show in the Right Pane": "Εμφάνιση στο δεξί πλαίσιο",
+  "{n} / {goal} words": "{n} / {goal} λέξεις",
+  "anonymous": "ανώνυμο",
+  "Anonymous Manuscript PDF (.pdf)": "Ανώνυμο χειρόγραφο σε PDF (.pdf)",
+  "Anonymous Manuscript Word (.docx)": "Ανώνυμο χειρόγραφο σε Word (.docx)",
+  "Change word goal…": "Αλλαγή στόχου λέξεων…",
+  "Click to change the story’s word goal": "Κάντε κλικ για να αλλάξετε τον στόχο λέξεων του διηγήματος",
+  "Click to set a word goal for the story": "Κάντε κλικ για να ορίσετε στόχο λέξεων για το διήγημα",
+  "e.g. 1500 — blank removes the goal": "π.χ. 1500 — κενό αφαιρεί τον στόχο",
+  "e.g. 5000 — blank removes the goal": "π.χ. 5000 — κενό αφαιρεί τον στόχο",
+  "goal {n}": "στόχος {n}",
+  "Word goal for “{title}”": "Στόχος λέξεων για «{title}»",
+  "Word goal for scene {n}": "Στόχος λέξεων για τη σκηνή {n}"
 }

@@ -943,6 +943,13 @@ async function renderShelves() {
   wrap.replaceChildren(built);
   view.scrollTop = keepScroll;
   fitBoundShelves();
+  // the stage filter, once there are stories to sort
+  const sf = $('#story-filter');
+  if (sf) {
+    stFilterWire();
+    sf.hidden = !wrap.querySelector('.story-tile');
+    if (sf.hidden && sf.value) { sf.value = ''; sf.onchange && sf.onchange(); }
+  }
 }
 
 // A bound shelf, measured once it's on screen: the thread under it runs as
@@ -1768,6 +1775,7 @@ function bookTile(meta, opts = {}) {
     if (!paper) options.push({ label: t('New cover'), value: 'refresh' });
     // a book of one chapter can be set as a short story, and a story that
     // grew can be a book again; the words stay as they are
+    if (isShortStory(meta)) options.push({ label: t('Status…'), desc: escHtml(stStatusLabel(stStatus(meta))), value: 'status' });
     if (isShortStory(meta)) options.push({ label: t('Make it a book'), desc: t('Set as a book again: chapters, a cover, the book exports. The words stay as they are.'), value: 'toBook' });
     else if (!script && !meta.kind && (meta.chapterOrder || []).filter((c) => isStory(c, meta)).length <= 1) {
       options.push({ label: t('Make it a short story'), desc: t('Set in manuscript format, ready to submit. The words stay as they are.'), value: 'toStory' });
@@ -1795,6 +1803,8 @@ function bookTile(meta, opts = {}) {
       if (!fmt) return;
       await openBook(meta.id);
       await doExport(fmt);
+    } else if (choice === 'status') {
+      await stStatusMenu(meta);
     } else if (choice === 'toStory' || choice === 'toBook') {
       await stConvert(meta, choice === 'toStory');
     } else if (choice === 'export' && isShortStory(meta)) {
@@ -6496,6 +6506,17 @@ function stDocxEntries(m) {
     { path: 'word/header1.xml', content: headerXml }
   ];
 }
+// Where a story stands. The writer says drafting, revising, ready or
+// trunked; the submissions say out or accepted, and they win: a trunked
+// story sent out again is out, and one that sold has sold.
+const ST_STATUSES = ['drafting', 'revising', 'ready', 'out', 'accepted', 'trunked'];
+const ST_SET_STATUSES = ['drafting', 'revising', 'ready', 'trunked'];
+function stStatus(meta) {
+  const sub = (meta && meta.subs) || {};
+  if (sub.accepted) return 'accepted';
+  if (sub.out) return 'out';
+  return ST_SET_STATUSES.includes(meta && meta.storyStatus) ? meta.storyStatus : 'drafting';
+}
 // ---- end of story rules ----
 
 const isShortStory = (meta = book) => !!meta && meta.format === 'story';
@@ -7022,15 +7043,62 @@ function storyTile(el, meta) {
   tEl.classList.toggle('long', title.length > 36);
   el.querySelector('.sy-author').textContent = meta.author ? t('by') + ' ' + meta.author : '';
   el.style.setProperty('--sy-font', ST_FONTS[stFont(meta)]);
-  // out on submission, or sold: a small stamp at the foot of the page
+  // where it stands, as a small stamp at the foot of the page: out on
+  // submission, sold, or the writer's own word; drafting goes unstamped
   const sub = meta.subs || {};
-  if (sub.out || sub.accepted) {
+  const status = stStatus(meta);
+  el.dataset.status = status;
+  if (status !== 'drafting') {
     const mark = document.createElement('span');
-    mark.className = 'sy-mark' + (sub.out ? '' : ' sold');
-    mark.textContent = sub.out ? t('out · {n}', { n: sub.out }) : t('accepted');
-    mark.title = sub.out ? t('Out at {n} markets', { n: sub.out }) : t('Accepted');
+    mark.className = 'sy-mark st-' + status + (status === 'accepted' ? ' sold' : '');
+    mark.textContent = status === 'out' ? t('out · {n}', { n: sub.out }) : stStatusLabel(status).toLowerCase();
+    mark.title = status === 'out' ? t('Out at {n} markets', { n: sub.out }) : stStatusLabel(status);
     el.appendChild(mark);
   }
+}
+// ---- where a story stands ----
+function stStatusLabel(status) {
+  return {
+    drafting: t('Drafting'), revising: t('Revising'), ready: t('Ready to send'),
+    out: t('Out'), accepted: t('Accepted'), trunked: t('Trunked')
+  }[status] || status;
+}
+// the writer sets drafting, revising, ready or trunked; out and accepted
+// come from the submissions
+async function stSetStatus(meta, status) {
+  const target = book && book.id === meta.id ? book : meta;
+  if (status === 'drafting') delete target.storyStatus; else target.storyStatus = status;
+  if (target === book) await saveMeta(); else await writeBookMeta(meta.id, meta);
+  bookMetaCache.delete(meta.id);
+  if (!$('#bookshelf-view').hidden) renderShelves();
+  if (book && book.id === meta.id && $('#submissions-view') && !$('#submissions-view').hidden) renderSubmissions();
+}
+async function stStatusMenu(meta) {
+  const now = stStatus(meta);
+  const derived = now === 'out' || now === 'accepted';
+  const opts = ST_SET_STATUSES.map((v) => ({
+    label: stStatusLabel(v) + (v === (meta.storyStatus || 'drafting') ? ' ✓' : ''),
+    desc: { drafting: t('Still being written.'), revising: t('Written; being worked over.'), ready: t('Done, and waiting for its next market.'), trunked: t('Put away. Off the list of stories to send.') }[v],
+    value: v
+  }));
+  const pick = await optionModal(t('Where “{title}” stands', { title: escHtml(meta.title) }),
+    derived ? escHtml(t('Its submissions say {status}; that shows on the shelf until nothing is out.', { status: stStatusLabel(now).toLowerCase() })) : null, opts);
+  if (pick) await stSetStatus(meta, pick);
+}
+// the shelf, narrowed to stories at one stage (for this session)
+function stFilterWire() {
+  const sel = $('#story-filter');
+  if (!sel || sel.dataset.wired) return;
+  sel.dataset.wired = '1';
+  const fill = () => {
+    sel.innerHTML = `<option value="">${escHtml(t('All works'))}</option>` + ST_STATUSES.map((v) => `<option value="${v}">${escHtml(stStatusLabel(v))}</option>`).join('');
+  };
+  fill();
+  sel.onchange = () => {
+    const wrap = $('#shelves');
+    if (sel.value) wrap.dataset.filter = sel.value; else delete wrap.dataset.filter;
+    sel.classList.toggle('on', !!sel.value);
+  };
 }
 
 // ---- out of NEO: the manuscript as PDF or Word, in manuscript format ----
@@ -7171,7 +7239,7 @@ function subFirstAppearance(list) {
 }
 // What would be embarrassing to send, as codes the window words for itself:
 // i = { title, contact, byline, flags, ghosts, words, goal, limit, market,
-// anonymous, text, names }
+// reading (subReading's answer), anonymous, text, names }
 function subChecks(i) {
   const out = [];
   if (!String(i.title || '').trim()) out.push({ code: 'title' });
@@ -7181,6 +7249,7 @@ function subChecks(i) {
   if (i.ghosts > 0) out.push({ code: 'outline', n: i.ghosts });
   if (i.limit > 0 && i.words > i.limit) out.push({ code: 'limit', n: i.words, limit: i.limit, market: i.market || '' });
   else if (i.goal > 0 && i.words > i.goal) out.push({ code: 'goal', n: i.words, goal: i.goal });
+  if (i.reading && !i.reading.open) out.push({ code: 'closed', market: i.market || '', opens: i.reading.opens || null });
   if (i.anonymous) {
     const found = subNamesIn(i.text || '', i.names || []);
     if (found.length) out.push({ code: 'name', names: found });
@@ -7281,6 +7350,45 @@ function subOverdue(sub, market, stat, today) {
   if (!subOut(sub)) return false;
   const usual = (market && market.usual) || (stat && stat.answered >= 2 ? stat.avgDays : 0);
   return usual > 0 && subDays(sub.sent, today) > usual;
+}
+// ---- reading periods: when a market reads ----
+// A market's windows recur every year as month-days, { from: '09-01', to:
+// '10-31' }; one may run over the new year ('11-15' to '02-15'). No windows
+// is reading all year; closed is shut until the writer says otherwise.
+const subMDOk = (md) => /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(String(md || ''));
+// a month-day in a year; a day past the month's end is its last (Feb 29)
+function subMD(year, md) {
+  const [m, d] = md.split('-').map(Number);
+  const last = new Date(Date.UTC(year, m, 0)).getUTCDate();
+  return `${year}-${String(m).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`;
+}
+function subDayAdd(day, n) {
+  return new Date(Date.parse(day + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+}
+// whether a market reads on a day, and when that changes:
+// { open, always } all year, { open, closes } in a window,
+// { open: false, opens } between windows, { open: false, shut } closed
+function subReading(market, today) {
+  if (!market) return { open: true, always: true };
+  if (market.closed) return { open: false, shut: true };
+  const wins = (Array.isArray(market.open) ? market.open : []).filter((w) => w && subMDOk(w.from) && subMDOk(w.to));
+  if (!wins.length) return { open: true, always: true };
+  const y = Number(today.slice(0, 4));
+  const spans = [];
+  for (const yy of [y - 1, y, y + 1]) {
+    for (const w of wins) spans.push([subMD(yy, w.from), subMD(w.to < w.from ? yy + 1 : yy, w.to)]);
+  }
+  spans.sort((a, b) => a[0].localeCompare(b[0]));
+  // windows that touch or overlap read as one
+  const merged = [];
+  for (const sp of spans) {
+    const last = merged[merged.length - 1];
+    if (last && sp[0] <= subDayAdd(last[1], 1)) { if (sp[1] > last[1]) last[1] = sp[1]; } else merged.push([...sp]);
+  }
+  const cur = merged.find(([a, b]) => a <= today && today <= b);
+  if (cur) return subDays(cur[0], cur[1]) >= 365 ? { open: true, always: true } : { open: true, closes: cur[1] };
+  const next = merged.find(([a]) => a > today);
+  return { open: false, opens: next ? next[0] : null };
 }
 
 // ---- a cover letter ----
@@ -7411,13 +7519,15 @@ function subForm(sub, conflictsFor) {
       const bits = [
         m.limit ? (n > m.limit ? t('Limit {limit} words: this story is {n}.', { limit: fmtNum(m.limit), n: fmtNum(n) }) : t('Limit {limit} words.', { limit: fmtNum(m.limit) })) : '',
         m.blind ? t('Reads blind: send the anonymous manuscript.') : '',
-        m.periods ? t('Reading: {periods}', { periods: m.periods }) : ''
+        subReadingNote(m, $f('.f-sent') ? $f('.f-sent').value || subToday() : subToday()).text
       ].filter(Boolean);
       note.hidden = !bits.length;
       setText(note, bits.join(' · '));
-      note.classList.toggle('over', !!(m.limit && n > m.limit));
+      const rn = subReadingNote(m, $f('.f-sent') ? $f('.f-sent').value || subToday() : subToday());
+      note.classList.toggle('over', !!(m.limit && n > m.limit) || !!rn.closed || !!rn.soon);
     };
     $f('.f-market').addEventListener('input', marketNote);
+    $f('.f-sent').addEventListener('change', marketNote);
     marketNote();
     $f('.f-market').focus();
     const done = (ok) => {
@@ -7451,7 +7561,7 @@ async function subLog() {
   if (!fields || !book) return;
   // the check, as this market will read it (blind, if it reads blind)
   const market = subMarket(fields.market);
-  if (!(await subConfirm(subCheckInfo(!!(market && market.blind), market), t('Log it anyway')))) return;
+  if (!(await subConfirm(subCheckInfo(!!(market && market.blind), market, fields.sent), t('Log it anyway')))) return;
   subMarketEnsure(fields);
   const id = 'sub-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   let version = null;
@@ -7573,7 +7683,17 @@ async function renderSubmissions() {
   setText(add, t('Log a submission…'));
   add.onclick = () => subLog();
   head.append(line, add);
-  v.appendChild(head);
+  // where the story stands, set here as well as on the shelf
+  const stand = document.createElement('div');
+  stand.className = 'subs-stand';
+  const now = stStatus(book);
+  if (now === 'out' || now === 'accepted') {
+    setText(stand, t('Status: {status}, from its submissions', { status: stStatusLabel(now) }));
+  } else {
+    stand.innerHTML = `<label>${escHtml(t('Status'))} <select class="subs-stand-sel">${ST_SET_STATUSES.map((x) => `<option value="${x}"${x === now ? ' selected' : ''}>${escHtml(stStatusLabel(x))}</option>`).join('')}</select></label>`;
+    stand.querySelector('select').onchange = (e) => stSetStatus(book, e.target.value);
+  }
+  v.append(head, stand);
   const labels = SUB_LABELS();
   const today = subToday();
   // each market's habits, from the whole library, for "longer than usual"
@@ -7707,7 +7827,10 @@ async function subsLibrary() {
       setText(row.querySelector('.sl-story'), name);
       setText(row.querySelector('.sl-market'), [t('{n} sent', { n: st.sent }), st.accepted ? t('{n} accepted', { n: st.accepted }) : '', st.personal ? t('{n} personal', { n: st.personal }) : ''].filter(Boolean).join(' · '));
       setText(row.querySelector('.sl-when'), st.answered ? (st.avgDays ? t('answers in ~{n} days', { n: st.avgDays }) : t('answers the same day')) : (m && m.usual ? t('says ~{n} days', { n: m.usual }) : ''));
-      setText(row.querySelector('.sl-status'), [m && m.limit ? t('to {n} words', { n: fmtNum(m.limit) }) : '', m && m.simultaneous === false ? t('no sims') : '', m && m.blind ? t('blind') : ''].filter(Boolean).join(' · '));
+      const rn = m ? subReadingNote(m) : { text: '' };
+      row.classList.toggle('closed', !!rn.closed);
+      row.classList.toggle('closing', !!rn.soon);
+      setText(row.querySelector('.sl-status'), [rn.text, m && m.limit ? t('to {n} words', { n: fmtNum(m.limit) }) : '', m && m.simultaneous === false ? t('no sims') : '', m && m.blind ? t('blind') : ''].filter(Boolean).join(' · '));
       row.onclick = async () => { if (await subEditMarket(name)) { bd.remove(); subsLibrary(); } };
       list.appendChild(row);
     }
@@ -7719,7 +7842,7 @@ async function subsLibrary() {
 }
 // ---- before it goes out: the pre-send check ----
 // what the check reads, for the open story; market is the record, if any
-function subCheckInfo(anonymous, market) {
+function subCheckInfo(anonymous, market, day) {
   const names = [library.authorName, ...(library.penNames || []), book.author, ...((library.authors || []).map((a) => a.name))];
   return {
     title: isUntitled(book.title) ? '' : book.title,
@@ -7731,6 +7854,7 @@ function subCheckInfo(anonymous, market) {
     goal: book.wordGoal || 0,
     limit: (market && market.limit) || 0,
     market: market ? market.name : '',
+    reading: market ? subReading(market, day || subToday()) : null,
     anonymous: !!anonymous,
     text: book.chapterOrder.map((c) => chapterText(c)).join('\n'),
     names: names.filter(Boolean)
@@ -7746,6 +7870,9 @@ function subCheckText(c) {
     case 'limit': return t('{n} words is over the {limit}-word limit at {market}.', { n: c.n, limit: fmtNum(c.limit), market: c.market });
     case 'goal': return t('{n} words is over the story’s goal of {goal}.', { n: c.n, goal: fmtNum(c.goal) });
     case 'name': return t('Your name is in the story itself: {names}.', { names: c.names.join(', ') });
+    case 'closed': return c.opens
+      ? t('{market} is closed to submissions until {date}.', { market: c.market, date: subDayLabel(c.opens) })
+      : t('{market} is closed until further notice.', { market: c.market });
   }
   return '';
 }
@@ -7762,6 +7889,31 @@ async function subConfirm(info, anyway) {
 }
 
 // ---- markets: the writer's own list ----
+// a day as the writer reads it: 'Sep 1', with the year when it isn't this one
+function subDayLabel(day) {
+  const at = Date.parse(day + 'T00:00:00Z');
+  if (Number.isNaN(at)) return day;
+  const opts = { month: 'short', day: 'numeric', timeZone: 'UTC' };
+  if (day.slice(0, 4) !== subToday().slice(0, 4)) opts.year = 'numeric';
+  return new Intl.DateTimeFormat(NeoI18n.getLocale(), opts).format(at);
+}
+// what a market's reading periods mean today, in words ('' for all year);
+// soon: shut, or closing within the week
+function subReadingNote(market, today = subToday()) {
+  const r = subReading(market, today);
+  if (r.shut) return { text: t('Closed until further notice'), closed: true };
+  if (!r.open) return { text: r.opens ? t('Closed · opens {date}', { date: subDayLabel(r.opens) }) : t('Closed'), closed: true };
+  if (r.closes) {
+    const left = subDays(today, r.closes);
+    return { text: left === 0 ? t('Reading · closes today') : t('Reading · closes {date}', { date: subDayLabel(r.closes) }), soon: left <= 7 };
+  }
+  return { text: '' };
+}
+// the month names for the periods editor, in the writer's language
+function subMonthNames() {
+  const f = new Intl.DateTimeFormat(NeoI18n.getLocale(), { month: 'short', timeZone: 'UTC' });
+  return Array.from({ length: 12 }, (_, i) => f.format(Date.UTC(2026, i, 1)));
+}
 function subMarkets() { return (library.markets = Array.isArray(library.markets) ? library.markets : []); }
 const subMarket = (name) => subMarkets().find((m) => subMarketKey(m.name) === subMarketKey(name)) || null;
 // a market first sent to joins the list, with what the submission said of it
@@ -7786,7 +7938,11 @@ function subMarketForm(m) {
         <label>${t('Pay')}<input class="f-pay" type="text" spellcheck="false"></label>
         <label class="sub-check"><input class="f-sim" type="checkbox"> ${t('Takes simultaneous submissions')}</label>
         <label class="sub-check"><input class="f-blind" type="checkbox"> ${t('Reads blind (send it anonymous)')}</label>
-        <label>${t('Reading periods')}<input class="f-periods" type="text" spellcheck="false"></label>
+        <div class="sub-periods">
+          <div class="sub-periods-head"><span>${t('Reading periods')}</span><label class="sub-check"><input class="f-shut" type="checkbox"> ${t('Closed until further notice')}</label></div>
+          <div class="f-wins"></div>
+          <div class="sub-periods-foot"><span class="f-allyear">${t('Reads all year.')}</span><button class="f-addwin btn-quiet" type="button">${t('Add a reading period')}</button></div>
+        </div>
         <label>${t('Notes')}<textarea class="f-notes contact-text" rows="3" spellcheck="false"></textarea></label>
         <div style="text-align:right;margin-top:6px">
           <button class="m-del btn-quiet" style="float:left">${t('Remove from the list')}</button>
@@ -7804,8 +7960,37 @@ function subMarketForm(m) {
     $f('.f-pay').value = (m && m.pay) || '';
     $f('.f-sim').checked = !m || m.simultaneous !== false;
     $f('.f-blind').checked = !!(m && m.blind);
-    $f('.f-periods').value = (m && m.periods) || '';
-    $f('.f-notes').value = (m && m.notes) || '';
+    // the windows, a row each: from month day, to month day
+    const months = subMonthNames();
+    const monthSel = (md) => '<select class="f-mon">' + months.map((n, i) => `<option value="${String(i + 1).padStart(2, '0')}"${md && md.slice(0, 2) === String(i + 1).padStart(2, '0') ? ' selected' : ''}>${escHtml(n)}</option>`).join('') + '</select>';
+    const addWin = (w) => {
+      const row = document.createElement('div');
+      row.className = 'sub-win';
+      row.innerHTML = `${monthSel(w.from)}<input class="f-day" type="text" inputmode="numeric" maxlength="2"><span class="sub-win-to">${t('to')}</span>${monthSel(w.to)}<input class="f-day" type="text" inputmode="numeric" maxlength="2"><button class="f-delwin btn-quiet" type="button" title="${escHtml(t('Remove'))}">×</button>`;
+      const days = row.querySelectorAll('.f-day');
+      days[0].value = String(Number(w.from.slice(3)));
+      days[1].value = String(Number(w.to.slice(3)));
+      row.querySelector('.f-delwin').onclick = () => { row.remove(); winsChanged(); };
+      $f('.f-wins').appendChild(row);
+      winsChanged();
+    };
+    const winsChanged = () => {
+      const shut = $f('.f-shut').checked;
+      $f('.f-allyear').hidden = shut || !!$f('.f-wins .sub-win');
+      $f('.sub-periods').classList.toggle('shut', shut);
+    };
+    const readWins = () => [...$f('.f-wins').querySelectorAll('.sub-win')].map((row) => {
+      const [m1, m2] = [...row.querySelectorAll('.f-mon')].map((x) => x.value);
+      const [d1, d2] = [...row.querySelectorAll('.f-day')].map((x) => Math.min(31, Math.max(1, parseInt(x.value, 10) || 1)));
+      return { from: `${m1}-${String(d1).padStart(2, '0')}`, to: `${m2}-${String(d2).padStart(2, '0')}` };
+    });
+    for (const w of (m && Array.isArray(m.open) ? m.open : [])) if (subMDOk(w.from) && subMDOk(w.to)) addWin(w);
+    $f('.f-addwin').onclick = () => addWin({ from: '01-01', to: '03-31' });
+    $f('.f-shut').checked = !!(m && m.closed);
+    $f('.f-shut').onchange = winsChanged;
+    winsChanged();
+    // periods written as words before they were dates move to the notes
+    $f('.f-notes').value = [(m && m.notes) || '', m && typeof m.periods === 'string' && m.periods ? t('Reading periods: {periods}', { periods: m.periods }) : ''].filter(Boolean).join('\n');
     $f('.m-del').hidden = !m || !subMarkets().includes(m);
     $f('.f-name').focus();
     const done = (v) => { bd.remove(); resolve(v); };
@@ -7817,7 +8002,7 @@ function subMarketForm(m) {
       done({
         name, editor: $f('.f-editor').value.trim(), limit: stGoalNumber($f('.f-limit').value), usual: stGoalNumber($f('.f-usual').value),
         pay: $f('.f-pay').value.trim(), simultaneous: $f('.f-sim').checked, blind: $f('.f-blind').checked,
-        periods: $f('.f-periods').value.trim(), notes: $f('.f-notes').value.trim()
+        open: readWins(), closed: $f('.f-shut').checked, notes: $f('.f-notes').value.trim()
       });
     };
     bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); } });
@@ -7829,7 +8014,7 @@ async function subEditMarket(name) {
   if (!v) return false;
   if (v === 'remove') { library.markets = subMarkets().filter((x) => x !== m); await writeLibrary(library); return true; }
   const known = subMarket(name);
-  if (known) Object.assign(known, v); else subMarkets().push(v);
+  if (known) { Object.assign(known, v); delete known.periods; } else subMarkets().push(v);
   await writeLibrary(library);
   return true;
 }

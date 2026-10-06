@@ -102,6 +102,20 @@ describe('filesystem', { concurrency: 1 }, () => {
       assert.ok(main.call('library:listBooks').some((b) => b.id === story.id), 'Reshelve lists it');
       main.call('library:write', { shelves: [] });
       assert.match(fs.readFileSync(path.join(dir, '_catalog.txt'), 'utf8'), new RegExp(story.id));
+      // a work that changes kind changes folder, and the library follows
+      const lib = { shelves: [{ id: 's1', bookIds: ['x', story.id] }], notes: { [story.id]: 1 } };
+      const back = main.call('book:refolder', story.id, 'book', lib);
+      const bookId = story.id.replace(/^story-/, 'book-');
+      assert.equal(back.id, bookId);
+      assert.equal(fs.existsSync(path.join(dir, story.id)), false);
+      assert.equal(JSON.parse(fs.readFileSync(path.join(dir, bookId, 'book.json'), 'utf8')).id, bookId);
+      assert.deepEqual(JSON.parse(JSON.stringify(back.library)), { shelves: [{ id: 's1', bookIds: ['x', bookId] }], notes: { [bookId]: 1 } });
+      assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'library.json'), 'utf8')).shelves[0].bookIds[1], bookId);
+      // already what it should be, or a name that's taken: nothing moves
+      assert.equal(main.call('book:refolder', bookId, 'book', lib).id, bookId);
+      const other = main.call('book:create', { title: 'The Harbor', folder: 'story' });
+      fs.mkdirSync(path.join(dir, other.id.replace(/^story-/, 'book-')));
+      assert.equal(main.call('book:refolder', other.id, 'book', lib).id, other.id);
       // anything else asked for is a book
       assert.match(main.call('book:create', { title: 'X', folder: '../evil' }).id, /^book-x-/);
     } finally {

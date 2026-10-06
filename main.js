@@ -525,6 +525,42 @@ ipcMain.handle('book:create', (_e, meta) => {
   return book;
 });
 
+// A work that changes kind changes folder: book-… ↔ story-…, the rest of
+// the name kept. The library passed in (the window's, about to be saved)
+// comes back with the new name wherever it named the old, written in the
+// same step, so a shelf never points at a folder that's gone. A folder of
+// another shape, a name already taken or a rename the system refuses
+// leaves everything as it was.
+function swapLibraryId(value, from, to) {
+  if (value === from) return to;
+  if (Array.isArray(value)) return value.map((v) => swapLibraryId(v, from, to));
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k === from ? to : k] = swapLibraryId(v, from, to);
+    return out;
+  }
+  return value;
+}
+ipcMain.handle('book:refolder', (_e, bookId, kind, lib) => {
+  const from = libName(bookId);
+  const m = /^(book|story)-(.+)$/.exec(from);
+  const to = m ? (kind === 'story' ? 'story-' : 'book-') + m[2] : from;
+  if (to === from || fs.existsSync(bookDir(to))) return { id: from, library: lib };
+  try {
+    fs.renameSync(bookDir(from), bookDir(to));
+  } catch (err) {
+    logError('refolder', err);
+    return { id: from, library: lib };
+  }
+  const metaFile = path.join(bookDir(to), 'book.json');
+  const meta = readJSON(metaFile, null);
+  if (meta) { meta.id = to; writeJSON(metaFile, meta); }
+  const next = swapLibraryId(lib || readJSON(LIBRARY_FILE, { shelves: [] }), from, to);
+  writeJSON(LIBRARY_FILE, next);
+  writeCatalog();
+  return { id: to, library: next };
+});
+
 // every book folder in the library, shelved or not — for File → Reshelve
 ipcMain.handle('library:listBooks', () => {
   const out = [];

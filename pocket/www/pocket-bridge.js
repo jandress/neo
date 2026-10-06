@@ -209,6 +209,29 @@
       await writeJSONFile(p(id, 'stickies.json'), []);
       return book;
     },
+    // book-… ↔ story-… when a work changes kind (as main.js's book:refolder)
+    refolderBook: async (bookId, kind, lib) => {
+      const m = /^(book|story)-(.+)$/.exec(String(bookId));
+      const to = m ? (kind === 'story' ? 'story-' : 'book-') + m[2] : bookId;
+      if (to === bookId) return { id: bookId, library: lib };
+      try {
+        await ready;
+        if ((await listDir('')).includes(to)) return { id: bookId, library: lib };
+        const a = at(bookId);
+        const b = at(to);
+        await FS().rename(a.directory ? { from: a.path, to: b.path, directory: a.directory, toDirectory: b.directory } : { from: a.path, to: b.path });
+      } catch (err) {
+        showErrorDetail('Could not rename ' + bookId + ': ' + (err && err.message || err));
+        return { id: bookId, library: lib };
+      }
+      const meta = await readJSONFile(p(to, 'book.json'), null);
+      if (meta) { meta.id = to; await writeJSONFile(p(to, 'book.json'), meta); }
+      const swap = (v) => v === bookId ? to : Array.isArray(v) ? v.map(swap)
+        : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k === bookId ? to : k, swap(x)])) : v;
+      const next = swap(lib);
+      await writeJSONFile(p('library.json'), next);
+      return { id: to, library: next };
+    },
     // the folder goes; on iOS the Files app keeps it in Recently Deleted
     deleteBook: async (bookId) => {
       try {

@@ -659,5 +659,7 @@
   "Contact Details…": "İletişim Bilgileri…",
   "Your legal name and how to reach you, for scripts and stories": "Yasal adınız ve size nasıl ulaşılacağı, senaryolar ve öyküler için",
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Yasal adınız ve size nasıl ulaşılacağı, her satıra bir bilgi. Her senaryonun kapak sayfasında ve her öykünün ilk sayfasında yer alır.",
-  "Drag to move the scene": "Sahneyi taşımak için sürükleyin"
+  "Drag to move the scene": "Sahneyi taşımak için sürükleyin",
+  "Keep Left Pane Open": "Sol paneli açık tut",
+  "Keep Right Pane Open": "Sağ paneli açık tut"
 }

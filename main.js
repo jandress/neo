@@ -1674,6 +1674,15 @@ ipcMain.on('story:state', (_e, st) => {
   storyState = next;
   try { buildMenu(); } catch (err) { logError('menu', err); }
 });
+// which side panes are kept open, for the View menu's ticks
+let paneState = { nav: false, side: false };
+ipcMain.on('panes:state', (_e, st) => {
+  st = st || {};
+  const next = { nav: !!st.nav, side: !!st.side };
+  if (next.nav === paneState.nav && next.side === paneState.side) return;
+  paneState = next;
+  try { buildMenu(); } catch (err) { logError('menu', err); }
+});
 let typewriterState = false;
 ipcMain.on('poetry:state', (_e, on) => {
   on = !!on;
@@ -1996,6 +2005,10 @@ function buildMenu() {
           checked: vimState,
           click: () => sendToWindow({ type: 'vim' })
         },
+        { type: 'separator' },
+        // the ☉ at the top of each side pane, from the menu
+        { label: t('Keep Left Pane Open'), type: 'checkbox', checked: paneState.nav, click: () => sendToWindow({ type: 'pinPane', value: 'nav' }) },
+        { label: t('Keep Right Pane Open'), type: 'checkbox', checked: paneState.side, click: () => sendToWindow({ type: 'pinPane', value: 'side' }) },
         { type: 'separator' },
         {
           label: t('Page'),

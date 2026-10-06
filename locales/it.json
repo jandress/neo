@@ -720,5 +720,7 @@
   "Contact Details…": "Recapiti…",
   "Your legal name and how to reach you, for scripts and stories": "Il tuo nome anagrafico e come contattarti, per sceneggiature e racconti",
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Il tuo nome anagrafico e come contattarti, un dato per riga. Va sul frontespizio di ogni sceneggiatura e sulla prima pagina di ogni racconto.",
-  "Drag to move the scene": "Trascina per spostare la scena"
+  "Drag to move the scene": "Trascina per spostare la scena",
+  "Keep Left Pane Open": "Tieni aperto il pannello sinistro",
+  "Keep Right Pane Open": "Tieni aperto il pannello destro"
 }

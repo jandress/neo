@@ -5901,6 +5901,7 @@ function spEditorMode() {
   const add = $('#nav-add');
   if (add) add.hidden = on;
   if (!on) setText($('#nav-head span'), t('Chapters'));
+  if (!on) $('#nav-pane').setAttribute('aria-label', t('Chapters'));
   spTitlePage(on);
   stEditorMode(); // or a story's
   // the pane stays open beside a script, unless the writer unpinned it there
@@ -6653,6 +6654,13 @@ function stScenes() {
   const chId = stChapter();
   return chId ? chapterSegments(chId) : [];
 }
+// where a placeholder sits in a story: its scene (a story has no chapters)
+function stMarkPlace(sid) {
+  const mark = document.querySelector(`#chapters .ph-mark[data-sid="${sid}"]`);
+  const p = mark && mark.closest('.chapter-body > p');
+  const k = p ? stScenes().findIndex((sg) => sg.brk === p || sg.ps.includes(p)) : -1;
+  return k >= 0 ? t('Scene {n}', { n: k + 1 }) : t('The story');
+}
 // the scene the caret is in
 function stCaretScene() {
   const sel = window.getSelection();
@@ -6696,6 +6704,7 @@ function renderStoryNav() {
   const list = $('#nav-list');
   const chId = stChapter();
   setText($('#nav-head span'), t('Scenes'));
+  $('#nav-pane').setAttribute('aria-label', t('Scenes'));
   const focused = document.activeElement && list.contains(document.activeElement) && document.activeElement.classList.contains('nav-note');
   if (focused) return; // never redraw under a note being written
   list.innerHTML = '';
@@ -7019,7 +7028,7 @@ function renderStickies() {
     el.className = 'sticky unresolved';
     el.dataset.sid = s.id;
     el.innerHTML = `
-      <div class="s-ch">${chIdx >= 0 ? chapterName(s.chapterId) : t('Unplaced')}</div>
+      <div class="s-ch">${chIdx >= 0 ? (isShortStory() ? stMarkPlace(s.id) : chapterName(s.chapterId)) : t('Unplaced')}</div>
       <textarea placeholder="${t('What needs doing here?')}" spellcheck="false"></textarea>
       <div class="s-actions"><button class="s-go">${t('Go to')}</button><span class="s-sep">·</span><button class="s-done">${t('Resolve')}</button></div>`;
     const ta = el.querySelector('textarea');
@@ -7514,6 +7523,8 @@ function pinPane(side, on, key = side) {
   pin.setAttribute('aria-pressed', on ? 'true' : 'false');
   $('#editor-view').classList.toggle(side + '-pinned', on);
   if (on) pane.classList.add('open');
+  else if (!pane.matches(':hover')) pane.classList.remove('open');
+  if (window.neo.panesState) window.neo.panesState({ nav: $('#nav-pane').dataset.pinned === '1', side: $('#side-pane').dataset.pinned === '1' });
   try {
     const kept = JSON.parse(localStorage.getItem('neo-pinned-panes') || '{}');
     kept[key] = on;
@@ -13797,6 +13808,11 @@ window.neo.onMenu(async (msg) => {
   if (msg.type === 'export') doExport(msg.format);
   if (msg.type === 'scriptElement' && book && isScript()) spSetElement(msg.value);
   if (msg.type === 'storyFont' && book && isShortStory()) stSetFont(msg.value);
+  // View → Keep Left/Right Pane Open: the pane's own ☉
+  if (msg.type === 'pinPane') {
+    if (msg.value === 'nav') $('#nav-pin').click();
+    else if (msg.value === 'side') $('#side-pin').click();
+  }
   if (msg.type === 'markdownEmphasis') {
     if (msg.checked) delete library.markdownOff; else library.markdownOff = true;
     await writeLibrary(library);

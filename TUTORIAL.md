@@ -156,6 +156,10 @@ Hit ⌘E and NEO emails a timestamped PDF snapshot of your draft to yourself, wi
 
 Everything is saved automatically, constantly, into plain ordinary files in a folder called NEO Library in your Documents. Open the folder and look — your chapters are just files. Back them up, sync them with Dropbox, whatever you like. If NEO disappeared tomorrow, every word you wrote would still be there. There's nothing being sent to a cloud (except your own email), nothing anyone else can read, just files on your computer.
 
+**Updates**
+
+NEO keeps itself current: it looks for a new version now and then, downloads it quietly, and puts it in the next time you quit. To decide for yourself, uncheck Help → Update Automatically; Help → Check for Update… still tells you what's out and links to it.
+
 **That's it**
 
 That's NEO. Hit ⌘/ anytime to see the shortcut list, but the important bits are: Enter, Enter, Enter. Write, write, write.

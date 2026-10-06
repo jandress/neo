@@ -130,6 +130,14 @@ Click the word count at the bottom to give the story a word goal (a market's lim
 
 **Submissions.** A story has a Submissions tab. Log a submission… records the market, the date, whether it takes simultaneous submissions, rights, pay and notes, and keeps a copy of the exact version you sent (with its fingerprint), so you know what an editor read. If the story is already out somewhere, NEO says where before you send it again. Change the status as answers come back (pending, shortlisted, rejected with a form letter or a personal one, accepted, withdrawn); the reply date fills itself in. Accept one, and NEO offers to mark the rest withdrawn (you still write to them yourself). Sent version shows the copy, and can open it as a story of its own. When a sold story comes out, put the date in Published. A collection bound from a shelf of stories gets a Previously Published page that lists where each one first appeared (“The Harbor at Night” first appeared in Lightspeed, March 2026), or that it's forthcoming; right-click the bound shelf's name to leave it out. A story that's out wears a small stamp on the shelf, and Submissions at the top of the shelf lists everything out across your library, longest out first.
 
+**Before it goes out.** Logging a submission, or exporting a manuscript, first checks the story: a missing title or contact details, placeholders and outline notes still in the text, a word count over the market's limit (or your own goal), and, for an anonymous manuscript, your name anywhere in the story itself. Fix it, or send it anyway.
+
+**Markets.** Every market you've sent to is listed under Markets in Submissions on the shelf, with what your own history says: how many you've sent, accepted, personal rejections, and how long they usually take to answer. Click one to note its editor, word limit, usual response time, pay, whether it takes simultaneous submissions or reads blind, and its reading periods. Logging a submission then suggests the market as you type, warns when the story runs over its limit, and fills in simultaneous for you. A submission out longer than that market usually takes is marked ⏱.
+
+**Compare.** Compare, on a submission, shows what has changed since that version went out: paragraphs added, taken out, and changed word by word.
+
+**Cover letters.** Cover letter, on a submission, drafts the short letter magazines ask for: the editor's name if you've noted it, the story's title, length and kind, where your other stories have appeared, and a line about you that every letter shares. Edit it and copy it into the submission form; the edited letter stays with the submission.
+
 The Word file has a real header, so an editor's changes won't knock the page numbers out of place. ⌘E emails you the manuscript PDF. A shelf of stories binds into a collection, each story under its own title.
 
 **Getting your book out**

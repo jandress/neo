@@ -73,5 +73,29 @@
   "answered {date} ({n} days)": {
     "one": "answered {date} ({n} day)",
     "other": "answered {date} ({n} days)"
+  },
+  "{n} placeholders are still unresolved.": {
+    "one": "{n} placeholder is still unresolved.",
+    "other": "{n} placeholders are still unresolved."
+  },
+  "{n} outline notes are still in the text, unwritten.": {
+    "one": "{n} outline note is still in the text, unwritten.",
+    "other": "{n} outline notes are still in the text, unwritten."
+  },
+  "{n} paragraphs the same": {
+    "one": "{n} paragraph the same",
+    "other": "{n} paragraphs the same"
+  },
+  "{n} paragraphs changed · {a} words added · {r} taken out": {
+    "one": "{n} paragraph changed · {a} words added · {r} taken out",
+    "other": "{n} paragraphs changed · {a} words added · {r} taken out"
+  },
+  "answers in ~{n} days": {
+    "one": "answers in ~{n} day",
+    "other": "answers in ~{n} days"
+  },
+  "says ~{n} days": {
+    "one": "says ~{n} day",
+    "other": "says ~{n} days"
   }
 }

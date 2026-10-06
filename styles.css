@@ -2154,3 +2154,22 @@ body.bright #subs-btn { color: #b4b4b4; border-color: #555; }
 body.light #subs-btn { border-color: #cfcac0; }
 body.light #subs-btn:hover { color: var(--accent); border-color: var(--accent); }
 body.light.bright #subs-btn { color: var(--muted); border-color: #a39d92; }
+
+/* the pre-send check, markets, comparing versions, cover letters (SUBMISSIONS) */
+.sub-form .sub-market-note { font-size: 12px; color: #8d8778; margin: -8px 0 14px; }
+.sub-form .sub-market-note.over { color: var(--accent); }
+.si-market { cursor: pointer; }
+.si-market:hover { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+.subs-library .sl-row.overdue .sl-when { color: var(--accent); }
+.subs-library .sl-row.overdue .sl-when::after { content: ' ⏱'; }
+.subs-library .sl-market-row { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+.subs-library .sl-market-row .sl-when { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subs-library .sl-markets-head { display: flex; justify-content: space-between; align-items: baseline; }
+.subs-library .sl-add { background: none; border: none; color: #8d8778; font-size: 11px; letter-spacing: 0; text-transform: none; }
+.subs-library .sl-add:hover { color: var(--accent); }
+.subs-library .sl-market-row .sl-market, .subs-library .sl-market-row .sl-status { color: #8d8778; }
+.sub-compare .sub-version-text p { text-indent: 0; margin: 0 0 10px; }
+.sub-compare .cmp-same { color: color-mix(in srgb, var(--ink) 45%, var(--paper)); font-style: italic; font-size: 12px; text-align: center; }
+.sub-compare ins { text-decoration: none; background: color-mix(in srgb, #4f8f5b 28%, transparent); border-radius: 2px; }
+.sub-compare del { color: color-mix(in srgb, #b4533f 85%, var(--ink)); background: color-mix(in srgb, #b4533f 14%, transparent); border-radius: 2px; }
+.sub-letter .f-letter { width: 100%; box-sizing: border-box; font-family: var(--body-font); font-size: 14px; line-height: 1.55; }

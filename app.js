@@ -975,6 +975,7 @@ function shelfCounts() {
       if (!n) continue;
       const label = document.createElement('span');
       label.textContent = fmtNum(n);
+      if (tile.dataset.status) label.dataset.status = tile.dataset.status; // dims with its story under the stage filter
       label.style.left = (tile.offsetLeft + tile.offsetWidth / 2) + 'px';
       label.style.top = (tile.offsetTop + tile.offsetHeight + 3) + 'px';
       layer.appendChild(label);

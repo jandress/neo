@@ -2287,3 +2287,12 @@ body.light .read-voice select { background: #fff; border-color: #cfcac0; color: 
 .read-voice input[type=range] { padding: 0; border: none; background: none; }
 .read-voice input[type=range] { display: block; width: 100%; margin-top: 6px; accent-color: var(--accent); }
 .read-voice output { color: var(--accent); margin-left: 4px; }
+
+/* fork glue: a word count dims with its tile under the story stage filter */
+#shelves[data-filter] .shelf-counts span { transition: opacity 0.2s; }
+#shelves[data-filter="drafting"] .shelf-counts span:not([data-status="drafting"]),
+#shelves[data-filter="revising"] .shelf-counts span:not([data-status="revising"]),
+#shelves[data-filter="ready"] .shelf-counts span:not([data-status="ready"]),
+#shelves[data-filter="out"] .shelf-counts span:not([data-status="out"]),
+#shelves[data-filter="accepted"] .shelf-counts span:not([data-status="accepted"]),
+#shelves[data-filter="trunked"] .shelf-counts span:not([data-status="trunked"]) { opacity: 0.15; }

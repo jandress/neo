@@ -2197,3 +2197,13 @@ body.light.bright #subs-btn { color: var(--muted); border-color: #a39d92; }
 #pane-view #submissions-view .si-meta { font-size: 11px; }
 #pane-view #submissions-view .si-actions button { margin-left: 8px; }
 #pane-view #submissions-view .subs-snap { font-size: 11px; margin-top: 14px; }
+/* each work's word count on the shelf's edge below it (shelfCounts in
+   app.js): the row makes room above its plank, and the labels sit there */
+.shelf-books.with-counts { position: relative; padding-bottom: 20px; row-gap: 32px; }
+.shelf-counts { position: absolute; inset: 0; pointer-events: none; }
+.shelf-counts span {
+  position: absolute; transform: translateX(-50%); white-space: nowrap;
+  font: 500 10px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; letter-spacing: 0.4px;
+  color: #7d786d; font-variant-numeric: tabular-nums;
+}
+body.light .shelf-counts span { color: #8f897e; }

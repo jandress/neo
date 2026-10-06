@@ -802,5 +802,12 @@
   "e.g. 5000 — blank removes the goal": "напр. 5000 — пусто убирает цель",
   "goal {n}": "цель {n}",
   "Word goal for “{title}”": "Цель по словам для «{title}»",
-  "Word goal for scene {n}": "Цель по словам для сцены {n}"
+  "Word goal for scene {n}": "Цель по словам для сцены {n}",
+  "Word Counts on the Shelf": "Число слов на полке",
+  "{title} — {n} words": {
+    "one": "{title} — {n} слово",
+    "few": "{title} — {n} слова",
+    "many": "{title} — {n} слов",
+    "other": "{title} — {n} слова"
+  }
 }

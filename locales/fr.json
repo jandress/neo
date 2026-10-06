@@ -744,5 +744,10 @@
   "e.g. 5000 — blank removes the goal": "ex. 5000 — vide supprime l’objectif",
   "goal {n}": "objectif {n}",
   "Word goal for “{title}”": "Objectif de mots pour « {title} »",
-  "Word goal for scene {n}": "Objectif de mots pour la scène {n}"
+  "Word goal for scene {n}": "Objectif de mots pour la scène {n}",
+  "Word Counts on the Shelf": "Nombre de mots sur l’étagère",
+  "{title} — {n} words": {
+    "one": "{title} — {n} mot",
+    "other": "{title} — {n} mots"
+  }
 }

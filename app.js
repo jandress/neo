@@ -943,7 +943,41 @@ async function renderShelves() {
   wrap.replaceChildren(built);
   view.scrollTop = keepScroll;
   fitBoundShelves();
+  shelfCounts();
 }
+
+// Each work's word count, on the shelf's edge under it, like a label on a
+// bookshop shelf: never on the cover, whose art and type run to its edges.
+// The labels are a layer of their own in each row, placed under the tiles
+// wherever the row wraps them (again when the window changes size).
+function shelfCounts() {
+  for (const row of $$('#shelves .shelf-books')) {
+    let layer = row.querySelector(':scope > .shelf-counts');
+    const on = library.shelfCounts !== false;
+    row.classList.toggle('with-counts', on);
+    if (!on) { if (layer) layer.remove(); continue; }
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.className = 'shelf-counts';
+      layer.setAttribute('aria-hidden', 'true'); // each tile's title says it
+      row.appendChild(layer);
+    }
+    layer.innerHTML = '';
+    for (const tile of row.querySelectorAll(':scope > .book')) {
+      const n = Number(tile.dataset.words || 0);
+      if (!n) continue;
+      const label = document.createElement('span');
+      label.textContent = fmtNum(n);
+      label.style.left = (tile.offsetLeft + tile.offsetWidth / 2) + 'px';
+      label.style.top = (tile.offsetTop + tile.offsetHeight + 3) + 'px';
+      layer.appendChild(label);
+    }
+  }
+}
+window.addEventListener('resize', () => {
+  clearTimeout(shelfCounts.t);
+  shelfCounts.t = setTimeout(() => { if (!$('#bookshelf-view').hidden) shelfCounts(); }, 120);
+});
 
 // A bound shelf, measured once it's on screen: the thread under it runs as
 // far as its books do, and a page's name too long for its spine (some
@@ -1686,9 +1720,11 @@ function bookTile(meta, opts = {}) {
     const pct = Math.min(100, Math.round(((meta.wordCount || 0) / meta.wordGoal) * 100));
     bar.firstElementChild.style.width = pct + '%';
   }
+  // its length, for the label on the shelf's edge below it (shelfCounts)
+  el.dataset.words = String(meta.wordCount || 0);
   el.title = meta.wordGoal
     ? t('{title} — {count} / {goal} words', { title: meta.title, count: meta.wordCount || 0, goal: meta.wordGoal })
-    : meta.title;
+    : meta.wordCount > 0 ? t('{title} — {n} words', { title: meta.title, n: meta.wordCount }) : meta.title;
   el.onclick = () => (opts.cover ? openTitlePage(opts.cover, meta) : openBook(meta.id));
   pressable(el, [el.title, meta.author ? t('by {author}', { author: meta.author }) : ''].filter(Boolean).join(', '));
   const refresh = el.querySelector('.b-refresh');
@@ -14716,6 +14752,11 @@ window.neo.onMenu(async (msg) => {
     if (msg.checked) delete library.markdownOff; else library.markdownOff = true;
     await writeLibrary(library);
     toast(msg.checked ? t('Markdown emphasis on: *italic*, **bold**') : t('Markdown emphasis off: asterisks stay asterisks'));
+  }
+  if (msg.type === 'shelfCounts') {
+    if (msg.checked) delete library.shelfCounts; else library.shelfCounts = false;
+    await writeLibrary(library);
+    if (!$('#bookshelf-view').hidden) renderShelves();
   }
   if (msg.type === 'exportCustomChapterTitles') {
     library.exportCustomChapterTitles = msg.checked;

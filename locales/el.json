@@ -677,5 +677,7 @@
   "e.g. 5000 — blank removes the goal": "π.χ. 5000 — κενό αφαιρεί τον στόχο",
   "goal {n}": "στόχος {n}",
   "Word goal for “{title}”": "Στόχος λέξεων για «{title}»",
-  "Word goal for scene {n}": "Στόχος λέξεων για τη σκηνή {n}"
+  "Word goal for scene {n}": "Στόχος λέξεων για τη σκηνή {n}",
+  "Word Counts on the Shelf": "Πλήθος λέξεων στο ράφι",
+  "{title} — {n} words": "{title} — {n} λέξεις"
 }

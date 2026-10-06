@@ -784,5 +784,12 @@
   "e.g. 5000 — blank removes the goal": "np. 5000 — puste usuwa cel",
   "goal {n}": "cel {n}",
   "Word goal for “{title}”": "Cel słów dla „{title}”",
-  "Word goal for scene {n}": "Cel słów dla sceny {n}"
+  "Word goal for scene {n}": "Cel słów dla sceny {n}",
+  "Word Counts on the Shelf": "Liczba słów na półce",
+  "{title} — {n} words": {
+    "one": "{title} — {n} słowo",
+    "few": "{title} — {n} słowa",
+    "many": "{title} — {n} słów",
+    "other": "{title} — {n} słowa"
+  }
 }

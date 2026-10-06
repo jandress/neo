@@ -678,5 +678,7 @@
   "e.g. 5000 — blank removes the goal": "örn. 5000 — boş bırakmak hedefi kaldırır",
   "goal {n}": "hedef {n}",
   "Word goal for “{title}”": "“{title}” için kelime hedefi",
-  "Word goal for scene {n}": "{n}. sahne için kelime hedefi"
+  "Word goal for scene {n}": "{n}. sahne için kelime hedefi",
+  "Word Counts on the Shelf": "Rafta kelime sayıları",
+  "{title} — {n} words": "{title} — {n} kelime"
 }

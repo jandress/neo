@@ -2010,6 +2010,12 @@ function buildMenu() {
           checked: vimState,
           click: () => sendToWindow({ type: 'vim' })
         },
+        {
+          label: t('Word Counts on the Shelf'),
+          type: 'checkbox',
+          checked: readJSON(LIBRARY_FILE, {}).shelfCounts !== false,
+          click: (item) => sendToWindow({ type: 'shelfCounts', checked: item.checked })
+        },
         { type: 'separator' },
         // the ☉ at the top of each side pane, from the menu
         { label: t('Keep Left Pane Open'), type: 'checkbox', checked: paneState.nav, click: () => sendToWindow({ type: 'pinPane', value: 'nav' }) },

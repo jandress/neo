@@ -73,5 +73,9 @@
   "answered {date} ({n} days)": {
     "one": "answered {date} ({n} day)",
     "other": "answered {date} ({n} days)"
+  },
+  "{title} — {n} words": {
+    "one": "{title} — {n} word",
+    "other": "{title} — {n} words"
   }
 }

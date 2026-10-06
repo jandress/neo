@@ -739,5 +739,10 @@
   "e.g. 5000 — blank removes the goal": "bijv. 5000 — leeg verwijdert het doel",
   "goal {n}": "doel {n}",
   "Word goal for “{title}”": "Woorddoel voor ‘{title}’",
-  "Word goal for scene {n}": "Woorddoel voor scène {n}"
+  "Word goal for scene {n}": "Woorddoel voor scène {n}",
+  "Word Counts on the Shelf": "Woordaantallen op de plank",
+  "{title} — {n} words": {
+    "one": "{title} — {n} woord",
+    "other": "{title} — {n} woorden"
+  }
 }

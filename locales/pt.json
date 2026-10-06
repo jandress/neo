@@ -742,5 +742,10 @@
   "e.g. 5000 — blank removes the goal": "ex.: 5000 — em branco remove a meta",
   "goal {n}": "meta {n}",
   "Word goal for “{title}”": "Meta de palavras para “{title}”",
-  "Word goal for scene {n}": "Meta de palavras para a cena {n}"
+  "Word goal for scene {n}": "Meta de palavras para a cena {n}",
+  "Word Counts on the Shelf": "Contagem de palavras na estante",
+  "{title} — {n} words": {
+    "one": "{title} — {n} palavra",
+    "other": "{title} — {n} palavras"
+  }
 }

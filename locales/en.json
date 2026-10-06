@@ -61,5 +61,17 @@
   "{n} / {goal} words": {
     "one": "{n} / {goal} word",
     "other": "{n} / {goal} words"
+  },
+  "{n} days out": {
+    "one": "{n} day out",
+    "other": "{n} days out"
+  },
+  "Out at {n} markets": {
+    "one": "Out at {n} market",
+    "other": "Out at {n} markets"
+  },
+  "answered {date} ({n} days)": {
+    "one": "answered {date} ({n} day)",
+    "other": "answered {date} ({n} days)"
   }
 }

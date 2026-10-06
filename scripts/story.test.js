@@ -170,3 +170,38 @@ test('an anonymous manuscript carries no name: no contact, no byline, a head of 
   assert.match(doc['word/document.xml'], /about 4,300 words/, 'the count stays');
   assert.match(doc['word/document.xml'], /w:before="5040"/, 'the title still eleven lines down');
 });
+
+// the submission rules from app.js
+const sctx = vm.createContext({});
+vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder };', sctx);
+const sb = sctx.api;
+
+test('submissions: what is out, how long, and what the shelf shows', () => {
+  assert.deepEqual([...sb.SUB_STATUSES], ['pending', 'shortlisted', 'rejected-form', 'rejected-personal', 'accepted', 'withdrawn']);
+  assert.ok(sb.subOut({ status: 'pending' }) && sb.subOut({ status: 'shortlisted' }));
+  assert.ok(!sb.subOut({ status: 'rejected-form' }) && !sb.subOut({ status: 'withdrawn' }));
+  assert.equal(sb.subDays('2026-09-01', '2026-10-05'), 34);
+  assert.equal(sb.subDays('2026-10-05', '2026-10-01'), 0, 'never negative');
+  assert.equal(sb.subDays('', '2026-10-01'), 0);
+  const list = [{ status: 'pending' }, { status: 'shortlisted' }, { status: 'accepted' }, { status: 'rejected-personal' }];
+  assert.deepEqual({ ...sb.subSummary(list) }, { out: 2, accepted: 1 });
+});
+
+test('submissions: sending again while out names the markets that make it a problem', () => {
+  const out = [{ market: 'A', status: 'pending', simultaneous: true }, { market: 'B', status: 'pending', simultaneous: false }, { market: 'C', status: 'rejected-form', simultaneous: false }];
+  assert.deepEqual(sb.subConflicts(out, true).map((s) => s.market), ['B'], 'B takes no simultaneous submissions');
+  assert.deepEqual(sb.subConflicts(out, false).map((s) => s.market), ['A', 'B'], 'the new market takes none');
+  assert.deepEqual([...sb.subConflicts([{ status: 'withdrawn' }], false)], [], 'nothing out, nothing to say');
+});
+
+test('submissions: the library lists the longest out first, then the answers newest first', () => {
+  const rows = [
+    { sub: { market: 'A', status: 'pending', sent: '2026-09-20' } },
+    { sub: { market: 'B', status: 'pending', sent: '2026-06-01' } },
+    { sub: { market: 'C', status: 'rejected-form', sent: '2026-05-01', responded: '2026-07-01' } },
+    { sub: { market: 'D', status: 'accepted', sent: '2026-04-01', responded: '2026-09-01' } }
+  ];
+  const { out, back } = sb.subLibraryOrder(rows, '2026-10-05');
+  assert.deepEqual(out.map((r) => r.sub.market), ['B', 'A']);
+  assert.deepEqual(back.map((r) => r.sub.market), ['D', 'C']);
+});

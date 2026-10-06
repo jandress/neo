@@ -6681,6 +6681,7 @@ function stEditorMode() {
     if (add) add.hidden = true;
   }
   stTitlePage(on);
+  subsTabMode();
   if (!on) { $('#word-counter').classList.remove('st-over'); $('#word-counter').removeAttribute('title'); }
   stReportState();
 }
@@ -7005,6 +7006,15 @@ function storyTile(el, meta) {
   tEl.classList.toggle('long', title.length > 36);
   el.querySelector('.sy-author').textContent = meta.author ? t('by') + ' ' + meta.author : '';
   el.style.setProperty('--sy-font', ST_FONTS[stFont(meta)]);
+  // out on submission, or sold: a small stamp at the foot of the page
+  const sub = meta.subs || {};
+  if (sub.out || sub.accepted) {
+    const mark = document.createElement('span');
+    mark.className = 'sy-mark' + (sub.out ? '' : ' sold');
+    mark.textContent = sub.out ? t('out · {n}', { n: sub.out }) : t('accepted');
+    mark.title = sub.out ? t('Out at {n} markets', { n: sub.out }) : t('Accepted');
+    el.appendChild(mark);
+  }
 }
 
 // ---- out of NEO: the manuscript as PDF or Word, in manuscript format ----
@@ -7075,6 +7085,396 @@ async function stExport(format, anonymous = false) {
     toast(t('Couldn’t export: {error}', { error: plainError(err) }), 8000);
   }
 }
+
+/* ================================================================== */
+/*  SUBMISSIONS                                                        */
+/*  Where a story has been sent and what came back. Each story keeps   */
+/*  its own list in submissions.json beside its chapters: the market,  */
+/*  the date it went, its status, the reply and when, the rights and   */
+/*  pay, whether the market takes simultaneous submissions, notes, and */
+/*  the exact version that went (submission-<id>.html, with its SHA-256 */
+/*  fingerprint), so a rewrite request months later meets the text the */
+/*  editor read. A story's own list is its Submissions tab; everything */
+/*  out across the library is Submissions on the shelf. book.json      */
+/*  keeps a two-number summary (subs) so the shelf can mark a story    */
+/*  that's out without opening every list.                            */
+/* ================================================================== */
+
+// ---- submission rules: plain functions (see scripts/story.test.js) ----
+const SUB_STATUSES = ['pending', 'shortlisted', 'rejected-form', 'rejected-personal', 'accepted', 'withdrawn'];
+// still waiting on an answer
+const subOut = (s) => s.status === 'pending' || s.status === 'shortlisted';
+// days between two YYYY-MM-DD dates
+function subDays(from, to) {
+  const a = Date.parse(from + 'T00:00:00Z');
+  const b = Date.parse(to + 'T00:00:00Z');
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+// what the shelf needs to know: how many are out, how many sold
+function subSummary(list) {
+  return { out: list.filter(subOut).length, accepted: list.filter((s) => s.status === 'accepted').length };
+}
+// Sending somewhere new while the story is out: the markets that make it a
+// problem. A market that won't take simultaneous submissions is a problem
+// either way, the one it's at or the one it's going to.
+function subConflicts(list, newAllowsSim) {
+  const out = list.filter(subOut);
+  if (!out.length) return [];
+  return newAllowsSim ? out.filter((s) => !s.simultaneous) : out;
+}
+// the library's list: what's out first, longest out at the top; then the
+// answers, newest first
+function subLibraryOrder(rows, today) {
+  const out = rows.filter((r) => subOut(r.sub)).sort((a, b) => subDays(b.sub.sent, today) - subDays(a.sub.sent, today));
+  const back = rows.filter((r) => !subOut(r.sub)).sort((a, b) => String(b.sub.responded || b.sub.sent).localeCompare(String(a.sub.responded || a.sub.sent)));
+  return { out, back };
+}
+// ---- end of submission rules ----
+
+const SUB_LABELS = () => ({
+  pending: t('Pending'), shortlisted: t('Shortlisted'), 'rejected-form': t('Rejected — form'),
+  'rejected-personal': t('Rejected — personal'), accepted: t('Accepted'), withdrawn: t('Withdrawn')
+});
+const subToday = () => writingDay();
+let subs = [];          // the open story's list
+let subsBook = null;    // whose list it is
+async function subsLoad() {
+  if (!book) return [];
+  if (subsBook !== book.id) {
+    const list = await window.neo.readJSON(book.id, 'submissions', []);
+    subs = Array.isArray(list) ? list : [];
+    subsBook = book.id;
+  }
+  return subs;
+}
+async function subsSave() {
+  if (!book || subsBook !== book.id) return;
+  await window.neo.writeJSON(book.id, 'submissions', subs);
+  book.subs = subSummary(subs);
+  scheduleMetaSave();
+}
+
+// The exact version that went: the story's paragraphs as they stood, under
+// its title and byline, in a file of its own; its fingerprint in the record
+async function subSnapshot(id) {
+  flushAllSaves();
+  const paras = [];
+  for (const chId of book.chapterOrder) {
+    const el = document.querySelector(`.chapter[data-id="${chId}"] .chapter-body`);
+    for (const p of parasFromHtml(el ? el.innerHTML : (chapterHTML[chId] || ''))) paras.push(p.sceneBreak ? '<p class="scene-break">***</p>' : p.html);
+  }
+  const title = isUntitled(book.title) ? t('Untitled') : book.title;
+  const html = `<h1>${escHtml(title)}</h1><p class="sub-by">${escHtml(book.author || '')}</p>${paras.join('')}`;
+  await window.neo.writeAux(book.id, 'submission-' + id, html);
+  return { file: 'submission-' + id, hash: await manuscriptHash(), words: bookWordCount() };
+}
+
+// ---- the form: a submission logged, or changed ----
+function subForm(sub, conflictsFor) {
+  return new Promise((resolve) => {
+    const bd = document.createElement('div');
+    bd.className = 'modal-backdrop';
+    const editing = !!sub;
+    bd.innerHTML = `
+      <div class="modal sub-form" style="width:460px">
+        <h2 style="font-size:16px"></h2>
+        <label>${t('Market')}<input class="f-market" type="text" spellcheck="false"></label>
+        <div class="sub-row">
+          <label>${t('Sent')}<input class="f-sent" type="date"></label>
+          <label>${t('Status')}<select class="f-status"></select></label>
+        </div>
+        <label class="sub-check"><input class="f-sim" type="checkbox"> ${t('This market takes simultaneous submissions')}</label>
+        <p class="sub-warn" hidden></p>
+        <div class="sub-row">
+          <label>${t('Reply')}<input class="f-responded" type="date"></label>
+          <label>${t('Pay')}<input class="f-pay" type="text" spellcheck="false"></label>
+        </div>
+        <label>${t('Rights')}<input class="f-rights" type="text" spellcheck="false"></label>
+        <label>${t('Notes')}<textarea class="f-notes contact-text" rows="3" spellcheck="false"></textarea></label>
+        <div style="text-align:right;margin-top:6px">
+          <button class="m-cancel btn-quiet" style="margin-right:10px">${t('Cancel')}</button>
+          <button class="m-ok btn-gold"></button>
+        </div>
+      </div>`;
+    document.body.appendChild(bd);
+    const $f = (c) => bd.querySelector(c);
+    setText($f('h2'), editing ? t('Submission to {market}', { market: sub.market }) : t('Log a submission'));
+    setText($f('.m-ok'), editing ? t('Save') : t('Log it'));
+    const sel = $f('.f-status');
+    for (const [v, label] of Object.entries(SUB_LABELS())) { const o = document.createElement('option'); o.value = v; o.textContent = label; sel.appendChild(o); }
+    const s = sub || { market: '', sent: subToday(), status: 'pending', simultaneous: true, responded: '', pay: '', rights: '', notes: '' };
+    $f('.f-market').value = s.market || '';
+    $f('.f-sent').value = s.sent || subToday();
+    sel.value = s.status || 'pending';
+    $f('.f-sim').checked = s.simultaneous !== false;
+    $f('.f-responded').value = s.responded || '';
+    $f('.f-pay').value = s.pay || '';
+    $f('.f-rights').value = s.rights || '';
+    $f('.f-notes').value = s.notes || '';
+    // a new submission while the story is out: say where it is, plainly
+    const warn = () => {
+      if (!conflictsFor) return;
+      const c = conflictsFor($f('.f-sim').checked);
+      const w = $f('.sub-warn');
+      w.hidden = !c.length;
+      if (c.length) setText(w, t('Still out at {markets}. Check that both markets take simultaneous submissions.', { markets: c.map((x) => x.market).join(', ') }));
+    };
+    $f('.f-sim').addEventListener('change', warn);
+    warn();
+    $f('.f-market').focus();
+    const done = (ok) => {
+      if (ok && !$f('.f-market').value.trim()) { $f('.f-market').focus(); return; }
+      bd.remove();
+      if (!ok) { resolve(null); return; }
+      resolve({
+        market: $f('.f-market').value.trim(),
+        sent: $f('.f-sent').value || subToday(),
+        status: SUB_STATUSES.includes(sel.value) ? sel.value : 'pending',
+        simultaneous: $f('.f-sim').checked,
+        responded: $f('.f-responded').value || '',
+        pay: $f('.f-pay').value.trim(),
+        rights: $f('.f-rights').value.trim(),
+        notes: $f('.f-notes').value.trim()
+      });
+    };
+    $f('.m-ok').onclick = () => done(true);
+    $f('.m-cancel').onclick = () => done(false);
+    bd.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); done(true); }
+    });
+  });
+}
+
+async function subLog() {
+  await subsLoad();
+  const fields = await subForm(null, (sim) => subConflicts(subs, sim));
+  if (!fields || !book) return;
+  const id = 'sub-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  let version = null;
+  if (library.subSnapshots !== false) {
+    try { version = await subSnapshot(id); } catch (err) { window.neo.logError('submission snapshot: ' + (err && err.message || err)); }
+  }
+  subs.push({ id, ...fields, version });
+  await subsSave();
+  renderSubmissions();
+  toast(version ? t('Logged, with the version you sent') : t('Logged'));
+}
+// a status that answers: the day it came back, if not already set; an
+// acceptance offers to withdraw the story from wherever else it's out
+async function subSetStatus(sub, status) {
+  const was = sub.status;
+  sub.status = status;
+  if (!subOut(sub) && subOut({ status: was }) && !sub.responded) sub.responded = subToday();
+  if (subOut(sub)) sub.responded = '';
+  await subsSave();
+  renderSubmissions();
+  if (status === 'accepted') {
+    const others = subs.filter((s) => s !== sub && subOut(s));
+    if (others.length) {
+      const pick = await optionModal(t('Accepted — congratulations.'), t('The story is still out at {markets}.', { markets: others.map((s) => escHtml(s.market)).join(', ') }), [
+        { label: t('Mark them withdrawn'), desc: t('You still need to write to each market yourself.'), value: 'withdraw' },
+        { label: t('Leave them as they are'), value: 'leave' }
+      ]);
+      if (pick === 'withdraw') {
+        for (const s of others) { s.status = 'withdrawn'; s.responded = subToday(); }
+        await subsSave();
+        renderSubmissions();
+      }
+    }
+  }
+}
+async function subEdit(sub) {
+  const fields = await subForm(sub, null);
+  if (!fields) return;
+  Object.assign(sub, fields);
+  await subsSave();
+  renderSubmissions();
+}
+async function subDelete(sub) {
+  const pick = await optionModal(t('Delete this submission?'), null, [
+    { label: t('Delete the record'), desc: t('Removes it from the list. The version you sent stays in the story’s folder.'), danger: true, value: 'del' }
+  ]);
+  if (pick !== 'del') return;
+  subs = subs.filter((s) => s !== sub);
+  await subsSave();
+  renderSubmissions();
+}
+// the version that went, to read, or to open as a story of its own
+async function subShowVersion(sub) {
+  const v = sub.version;
+  if (!v) return;
+  const html = await window.neo.readAux(book.id, v.file);
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.innerHTML = `
+    <div class="modal sub-version" style="width:640px">
+      <h2 style="font-size:16px"></h2>
+      <p class="sub-meta"></p>
+      <div class="sub-version-text"></div>
+      <div style="text-align:right;margin-top:14px">
+        <button class="v-copy btn-quiet" style="margin-right:10px">${t('Open as a new story')}</button>
+        <button class="m-ok btn-gold">${t('Close')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bd);
+  setText(bd.querySelector('h2'), t('As sent to {market}', { market: sub.market }));
+  setText(bd.querySelector('.sub-meta'), t('{date} · {n} words · SHA-256 {hash}', { date: sub.sent, n: v.words || 0, hash: (v.hash || '').slice(0, 16) + '…' }));
+  // what NEO itself wrote, read back into an inert template first
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html || '';
+  bd.querySelector('.sub-version-text').appendChild(tpl.content);
+  const close = () => bd.remove();
+  bd.querySelector('.m-ok').onclick = close;
+  bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
+  bd.querySelector('.v-copy').onclick = async () => {
+    close();
+    const body = (html || '').replace(/^<h1>[\s\S]*?<\/h1><p class="sub-by">[\s\S]*?<\/p>/, '') || '<p><br></p>';
+    const shelf = shelfOf(book.id) || library.shelves[0];
+    const meta = await window.neo.createBook({ author: book.author || displayAuthor(), title: book.title + ' — ' + sub.market });
+    const chId = 'ch-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+    await window.neo.writeChapter(meta.id, chId, body);
+    Object.assign(meta, { title: book.title + ' — ' + sub.market, format: 'story', storyFont: book.storyFont || 'times', chapterOrder: [chId], tabNames: book.tabNames });
+    await writeBookMeta(meta.id, meta);
+    await placeTitle(shelf, meta.id);
+    await writeLibrary(library);
+    toast(t('“{title}” is on the shelf, as it was sent', { title: meta.title }));
+  };
+}
+
+// ---- the story's Submissions tab ----
+function subsView() {
+  let v = $('#submissions-view');
+  if (!v) {
+    v = document.createElement('div');
+    v.id = 'submissions-view';
+    v.hidden = true;
+    $('#aux-paper').appendChild(v);
+  }
+  return v;
+}
+async function renderSubmissions() {
+  const v = subsView();
+  await subsLoad();
+  v.innerHTML = '';
+  const sum = subSummary(subs);
+  const head = document.createElement('div');
+  head.className = 'subs-head';
+  const line = document.createElement('div');
+  line.className = 'subs-sum';
+  setText(line, subs.length
+    ? [t('{n} sent', { n: subs.length }), sum.out ? t('{n} out now', { n: sum.out }) : '', sum.accepted ? t('{n} accepted', { n: sum.accepted }) : ''].filter(Boolean).join(' · ')
+    : t('Not sent anywhere yet.'));
+  const add = document.createElement('button');
+  add.className = 'btn-gold subs-add';
+  setText(add, t('Log a submission…'));
+  add.onclick = () => subLog();
+  head.append(line, add);
+  v.appendChild(head);
+  const labels = SUB_LABELS();
+  const today = subToday();
+  for (const s of [...subs].sort((a, b) => String(b.sent).localeCompare(String(a.sent)))) {
+    const row = document.createElement('div');
+    row.className = 'sub-item status-' + s.status;
+    row.innerHTML = `<div class="si-top"><span class="si-market"></span><select class="si-status"></select></div>
+      <div class="si-meta"></div><div class="si-notes"></div>
+      <div class="si-actions"><button class="si-edit">${t('Edit')}</button><button class="si-version">${t('Sent version')}</button><button class="si-del">${t('Delete')}</button></div>`;
+    setText(row.querySelector('.si-market'), s.market);
+    const sel = row.querySelector('.si-status');
+    for (const [val, label] of Object.entries(labels)) { const o = document.createElement('option'); o.value = val; o.textContent = label; sel.appendChild(o); }
+    sel.value = s.status;
+    sel.onchange = () => subSetStatus(s, sel.value);
+    const meta = [
+      t('sent {date}', { date: s.sent }),
+      subOut(s) ? t('{n} days out', { n: subDays(s.sent, today) }) : (s.responded ? t('answered {date} ({n} days)', { date: s.responded, n: subDays(s.sent, s.responded) }) : ''),
+      s.simultaneous === false ? t('no simultaneous') : '',
+      s.rights, s.pay
+    ].filter(Boolean).join(' · ');
+    setText(row.querySelector('.si-meta'), meta);
+    setText(row.querySelector('.si-notes'), s.notes || '');
+    row.querySelector('.si-version').hidden = !s.version;
+    row.querySelector('.si-edit').onclick = () => subEdit(s);
+    row.querySelector('.si-version').onclick = () => subShowVersion(s);
+    row.querySelector('.si-del').onclick = () => subDelete(s);
+    v.appendChild(row);
+  }
+  const foot = document.createElement('label');
+  foot.className = 'subs-snap';
+  foot.innerHTML = `<input type="checkbox"> ${t('Keep the exact version sent with each submission')}`;
+  const cb = foot.querySelector('input');
+  cb.checked = library.subSnapshots !== false;
+  cb.onchange = () => { if (cb.checked) delete library.subSnapshots; else library.subSnapshots = false; writeLibrary(library); };
+  v.appendChild(foot);
+}
+// the tab shows only on a story
+function subsTabMode() {
+  const tab = $('.tab[data-tab="submissions"]');
+  if (tab) tab.hidden = !(book && isShortStory());
+  if (book && subsBook !== book.id) { subs = []; subsBook = null; }
+}
+
+// ---- the library's submissions, from the shelf ----
+async function subsLibrary() {
+  const rows = [];
+  const stories = [];
+  for (const shelf of library.shelves) {
+    for (const id of shelf.bookIds) {
+      const m = await shelfMeta(id);
+      if (!m || !isShortStory(m) || stories.some((x) => x.id === id)) continue;
+      stories.push(m);
+      const list = await window.neo.readJSON(id, 'submissions', []);
+      for (const sub of Array.isArray(list) ? list : []) rows.push({ meta: m, sub });
+    }
+  }
+  const today = subToday();
+  const { out, back } = subLibraryOrder(rows, today);
+  const labels = SUB_LABELS();
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.innerHTML = `
+    <div class="modal subs-library" style="width:720px">
+      <h2 style="font-size:16px">${t('Submissions')}</h2>
+      <p class="subs-sum"></p>
+      <div class="sl-list"></div>
+      <div style="text-align:right;margin-top:14px"><button class="m-ok btn-gold">${t('Close')}</button></div>
+    </div>`;
+  document.body.appendChild(bd);
+  const sold = rows.filter((r) => r.sub.status === 'accepted').length;
+  setText(bd.querySelector('.subs-sum'), rows.length
+    ? [t('{n} out now', { n: out.length }), t('{n} sent', { n: rows.length }), sold ? t('{n} accepted', { n: sold }) : ''].filter(Boolean).join(' · ')
+    : t('Nothing sent yet. A story’s Submissions tab logs where it goes.'));
+  const list = bd.querySelector('.sl-list');
+  const section = (title, items, outNow) => {
+    if (!items.length) return;
+    const h = document.createElement('div');
+    h.className = 'sl-head';
+    setText(h, title);
+    list.appendChild(h);
+    for (const r of items) {
+      const row = document.createElement('button');
+      row.className = 'sl-row status-' + r.sub.status;
+      row.innerHTML = '<span class="sl-story"></span><span class="sl-market"></span><span class="sl-when"></span><span class="sl-status"></span>';
+      setText(row.querySelector('.sl-story'), isUntitled(r.meta.title) ? t('Untitled') : r.meta.title);
+      setText(row.querySelector('.sl-market'), r.sub.market);
+      setText(row.querySelector('.sl-when'), outNow ? t('{n} days out', { n: subDays(r.sub.sent, today) }) : (r.sub.responded || r.sub.sent));
+      setText(row.querySelector('.sl-status'), labels[r.sub.status] || r.sub.status);
+      row.onclick = async () => {
+        bd.remove();
+        await openBook(r.meta.id);
+        switchTab('submissions');
+      };
+      list.appendChild(row);
+    }
+  };
+  section(t('Out now'), out, true);
+  section(t('Answered'), back, false);
+  const close = () => bd.remove();
+  bd.querySelector('.m-ok').onclick = close;
+  bd.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
+  bd.querySelector('.m-ok').focus();
+}
+$('#subs-btn').onclick = () => subsLibrary();
 
 /* ================================================================== */
 /*  PLACEHOLDERS + STICKIES                                            */
@@ -7949,10 +8349,15 @@ function switchTab(name) {
   auxEditor.hidden = true;
   dList.hidden = true;
   oList.hidden = true;
+  subsView().hidden = true; // a story's submissions (SUBMISSIONS)
   // the outline's cards, their List/Cards switch and their hint belong to the Outline alone
   for (const id of ['#outline-board', '#outline-views', '#outline-board-hint']) { const el = $(id); if (el) el.hidden = true; }
 
-  if (name === 'darlings') {
+  if (name === 'submissions') {
+    $('#aux-title').textContent = t('Submissions');
+    subsView().hidden = false;
+    renderSubmissions().then(returnTo);
+  } else if (name === 'darlings') {
     $('#aux-title').textContent = t('Darlings');
     dList.hidden = false;
     renderDarlings();

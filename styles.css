@@ -2225,3 +2225,41 @@ body.light .shelf-counts span { color: #8f897e; }
 .sub-compare ins { text-decoration: none; background: color-mix(in srgb, #4f8f5b 28%, transparent); border-radius: 2px; }
 .sub-compare del { color: color-mix(in srgb, #b4533f 85%, var(--ink)); background: color-mix(in srgb, #b4533f 14%, transparent); border-radius: 2px; }
 .sub-letter .f-letter { width: 100%; box-sizing: border-box; font-family: var(--body-font); font-size: 14px; line-height: 1.55; }
+
+/* reading periods in the market form, and in the markets list */
+.sub-periods { margin: 4px 0 12px; }
+.sub-periods-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: #b9b2a2; margin-bottom: 6px; }
+.sub-periods-head .sub-check { margin: 0; font-size: 12px; }
+.sub-win { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.sub-win select, .sub-win input { width: auto; margin: 0; padding: 5px 6px; font-size: 12.5px; }
+.sub-win .f-day { width: 3em; text-align: center; }
+.sub-win-to { color: #8d8778; font-size: 12px; padding: 0 4px; }
+.sub-win .f-delwin { margin-left: auto; font-size: 15px; padding: 0 6px; }
+.sub-periods-foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: #8d8778; }
+.sub-periods-foot .f-addwin { font-size: 12px; padding: 0; margin-left: auto; }
+.sub-periods.shut .f-wins, .sub-periods.shut .f-addwin { opacity: 0.35; pointer-events: none; }
+.subs-library .sl-market-row.closed .sl-story { color: #8d8778; }
+.subs-library .sl-market-row.closing .sl-status { color: var(--accent); }
+.modal.sub-form { max-height: calc(100vh - 48px); overflow-y: auto; }
+
+/* where a story stands: the stamp on its page, the shelf filter, the tab's line */
+.story-tile .sy-mark.st-revising, .story-tile .sy-mark.st-ready { color: #6b6455; }
+.story-tile .sy-mark.st-trunked { color: #8a8a8a; border-style: dashed; }
+#story-filter {
+  background: none; border: 1px solid #3a3a3a; color: var(--muted);
+  border-radius: 6px; padding: 4px 8px; font-size: 12px; font-family: inherit;
+}
+#story-filter:hover, #story-filter.on { color: var(--accent); border-color: var(--accent); }
+#story-filter option { background: #1e1e1e; color: #ddd; }
+body.light #story-filter { border-color: #cfcac0; }
+body.light #story-filter option { background: #fff; color: #333; }
+#shelves[data-filter] .book { transition: opacity 0.2s; }
+#shelves[data-filter="drafting"] .book:not([data-status="drafting"]),
+#shelves[data-filter="revising"] .book:not([data-status="revising"]),
+#shelves[data-filter="ready"] .book:not([data-status="ready"]),
+#shelves[data-filter="out"] .book:not([data-status="out"]),
+#shelves[data-filter="accepted"] .book:not([data-status="accepted"]),
+#shelves[data-filter="trunked"] .book:not([data-status="trunked"]) { opacity: 0.12; }
+.subs-stand { font-size: 12.5px; color: #8d8778; margin: -6px 0 14px; }
+.subs-stand select { background: none; color: inherit; border: 1px solid #3a3a3a; border-radius: 4px; padding: 2px 4px; font: inherit; margin-left: 4px; }
+.subs-stand select option { background: #1e1e1e; color: #ddd; }

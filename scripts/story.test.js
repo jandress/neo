@@ -13,7 +13,7 @@ const to = app.indexOf('// ---- end of story rules ----');
 const context = vm.createContext({});
 vm.runInContext(app.slice(from, to), context);
 vm.runInContext(`this.api = { ST_LINES, ST_HEAD, stPages, stRoundWords, stCategory, stSurname, stKeywords,
-  stHeader, stHead, stLinesFromHeight, stPageAt, stPdfHtml, stDocxEntries };`, context);
+  stHeader, stHead, stLinesFromHeight, stPageAt, stPdfHtml, stDocxEntries, ST_STATUSES, stStatus };`, context);
 const st = context.api;
 
 test('a manuscript page holds 27 double-spaced lines; page one gives 14 to the title block', () => {
@@ -173,7 +173,7 @@ test('an anonymous manuscript carries no name: no contact, no byline, a head of 
 
 // the submission rules from app.js
 const sctx = vm.createContext({});
-vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder, subCredit, subFirstAppearance, subChecks, subNamesIn, diffSeq, diffParas, subMarketStats, subOverdue, subLetter };', sctx);
+vm.runInContext(app.slice(app.indexOf('// ---- submission rules:'), app.indexOf('// ---- end of submission rules ----')) + ';this.api = { SUB_STATUSES, subOut, subDays, subSummary, subConflicts, subLibraryOrder, subCredit, subFirstAppearance, subChecks, subNamesIn, diffSeq, diffParas, subMarketStats, subOverdue, subLetter, subMD, subReading };', sctx);
 const sb = sctx.api;
 
 test('submissions: what is out, how long, and what the shelf shows', () => {
@@ -277,4 +277,41 @@ test('a cover letter: the ask, the credits as a list, the sign-off', () => {
   assert.match(bare, /^Dear Editors,/);
   assert.ok(!/appeared/.test(bare));
   assert.match(sb.subLetter({ market: 'X', title: 'T', words: 'w', credits: ['A', 'B'], name: 'Jo' }), /appeared in A and B\./);
+});
+
+test('reading periods: open, closing, opening, over the new year, and shut', () => {
+  const r = (m, d) => ({ ...sb.subReading(m, d) });
+  assert.deepEqual(r(null, '2026-10-05'), { open: true, always: true });
+  assert.deepEqual(r({ open: [] }, '2026-10-05'), { open: true, always: true });
+  assert.deepEqual(r({ closed: true, open: [{ from: '01-01', to: '12-31' }] }, '2026-10-05'), { open: false, shut: true });
+  const two = { open: [{ from: '01-01', to: '03-31' }, { from: '09-01', to: '10-31' }] };
+  assert.deepEqual(r(two, '2026-10-05'), { open: true, closes: '2026-10-31' });
+  assert.deepEqual(r(two, '2026-11-01'), { open: false, opens: '2027-01-01' });
+  assert.deepEqual(r(two, '2026-04-01'), { open: false, opens: '2026-09-01' });
+  assert.deepEqual(r(two, '2026-03-31'), { open: true, closes: '2026-03-31' }, 'the last day still reads');
+  // over the new year
+  const winter = { open: [{ from: '11-15', to: '02-15' }] };
+  assert.deepEqual(r(winter, '2026-12-20'), { open: true, closes: '2027-02-15' });
+  assert.deepEqual(r(winter, '2027-01-10'), { open: true, closes: '2027-02-15' });
+  assert.deepEqual(r(winter, '2026-06-01'), { open: false, opens: '2026-11-15' });
+  // windows that meet read as one; the whole year is all year
+  assert.deepEqual(r({ open: [{ from: '01-01', to: '06-30' }, { from: '07-01', to: '08-31' }] }, '2026-05-01'), { open: true, closes: '2026-08-31' });
+  assert.deepEqual(r({ open: [{ from: '01-01', to: '12-31' }] }, '2026-05-01'), { open: true, always: true });
+  // Feb 29 in a year without one, and nonsense ignored
+  assert.equal(sb.subMD(2027, '02-29'), '2027-02-28');
+  assert.equal(sb.subMD(2028, '02-29'), '2028-02-29');
+  assert.deepEqual(r({ open: [{ from: '13-01', to: 'x' }] }, '2026-05-01'), { open: true, always: true });
+  // the pre-send check hears about it
+  const codes = sb.subChecks({ title: 'T', contact: 'c', byline: 'b', words: 10, market: 'SH', reading: { open: false, opens: '2027-01-01' } });
+  assert.deepEqual([...codes.map((c) => ({ ...c }))], [{ code: 'closed', market: 'SH', opens: '2027-01-01' }]);
+});
+
+test('a story’s status: the writer’s word, unless the submissions say otherwise', () => {
+  assert.equal(st.stStatus({}), 'drafting');
+  assert.equal(st.stStatus(null), 'drafting');
+  assert.equal(st.stStatus({ storyStatus: 'revising' }), 'revising');
+  assert.equal(st.stStatus({ storyStatus: 'nonsense' }), 'drafting');
+  assert.equal(st.stStatus({ storyStatus: 'trunked', subs: { out: 2, accepted: 0 } }), 'out');
+  assert.equal(st.stStatus({ storyStatus: 'ready', subs: { out: 1, accepted: 1 } }), 'accepted');
+  assert.equal(st.stStatus({ storyStatus: 'ready', subs: { out: 0, accepted: 0 } }), 'ready', 'back from every market: ready to go again');
 });

@@ -7714,6 +7714,12 @@ async function subsLibrary() {
   bd.querySelector('.m-ok').focus();
 }
 $('#subs-btn').onclick = () => subsLibrary();
+// (fork-build: where pane tabs and stories meet) a story's Submissions can
+// sit in the right-hand pane like any other tab
+paneRegister('submissions', {
+  view: '#submissions-view', make: subsView, render: renderSubmissions,
+  can: () => !!book && isShortStory(), title: () => t('Submissions')
+});
 
 // A bound collection's Previously Published page: one line for each story
 // that sold, in the book's order, set among the back pages ahead of the

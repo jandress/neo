@@ -172,7 +172,7 @@
       const out = [];
       try {
         for (const name of await listDir('')) {
-          if (!String(name).startsWith('book-')) continue;
+          if (!/^(book|story)-/.test(String(name))) continue;
           const m = await readJSONFile(p(name, 'book.json'), null);
           if (m && m.id) out.push({ id: m.id, title: m.title || 'Untitled', author: m.author || '', modified: m.modified || '', kind: m.kind || '' });
         }
@@ -189,7 +189,7 @@
     refreshBook: async (bookId) => { await fetchCloud(bookId, 4000); return true; },
     createBook: async (opts) => {
       const seed = (opts && opts.title) ? slugify(opts.title) : '';
-      const id = 'book-' + (seed ? seed + '-' : '') + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+      const id = (opts && opts.folder === 'story' ? 'story-' : 'book-') + (seed ? seed + '-' : '') + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
       const book = {
         id,
         title: (opts && opts.title) || 'Untitled',

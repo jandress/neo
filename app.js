@@ -6998,7 +6998,7 @@ if (ST_NARROW.addEventListener) {
 
 // ---- the shelf: a new story, and its tile ----
 async function createStoryOnShelf(shelf) {
-  const meta = await window.neo.createBook({ author: stByline() });
+  const meta = await window.neo.createBook({ author: stByline(), folder: 'story' });
   // the contact block starts with the writer's legal name, the first line
   // Shunn asks for
   if (!library.scriptContact && library.authorName) library.scriptContact = library.authorName;
@@ -7644,7 +7644,7 @@ async function subShowVersion(sub) {
     close();
     const body = (html || '').replace(/^<h1>[\s\S]*?<\/h1><p class="sub-by">[\s\S]*?<\/p>/, '') || '<p><br></p>';
     const shelf = shelfOf(book.id) || library.shelves[0];
-    const meta = await window.neo.createBook({ author: book.author || displayAuthor(), title: book.title + ' — ' + sub.market });
+    const meta = await window.neo.createBook({ author: book.author || displayAuthor(), title: book.title + ' — ' + sub.market, folder: 'story' });
     const chId = 'ch-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
     await window.neo.writeChapter(meta.id, chId, body);
     Object.assign(meta, { title: book.title + ' — ' + sub.market, format: 'story', storyFont: book.storyFont || 'times', chapterOrder: [chId], tabNames: book.tabNames });
@@ -12495,7 +12495,8 @@ async function addImportedBooks(results, shelf) {
     // passing the title in gives the book folder a readable name too
     const meta = await window.neo.createBook({
       author: r.author || displayAuthor(),
-      title: r.title || r.name
+      title: r.title || r.name,
+      folder: r.story ? 'story' : 'book'
     });
     meta.title = r.title || r.name;
     // a story in manuscript format stays one: one piece, in its own face

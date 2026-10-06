@@ -2305,6 +2305,7 @@ async function openBook(bookId) {
 
   renderChapters();
   renderStickies();
+  paneSync(true); // the tab the right pane holds, for this book
   migrateDarlingAnchors(); // sweep legacy invisible markers out of the prose
   reconcileMarks();        // re-adopt any note marks orphaned by cut/paste
   updateCounters();
@@ -6945,6 +6946,158 @@ async function stExport(format) {
 }
 
 /* ================================================================== */
+/*  PANE TABS                                                          */
+/*  The right-hand pane holds one of the bottom bar's tabs: Comments   */
+/*  (the placeholders, as it always has), or Notes, the Outline, or    */
+/*  Darlings, so it can stay in view beside the page while the writer  */
+/*  writes. Right-click a tab: Show in the Right Pane, or Back to the  */
+/*  Page. Each view is one element that moves between its place on the */
+/*  page (#aux-paper) and the pane (#pane-view); nothing is built      */
+/*  twice. The Manuscript stays on the page. library.paneTab says      */
+/*  which tab the pane holds; Comments when it says nothing.           */
+/* ================================================================== */
+const PANE_TABS = ['comments', 'notes', 'outline', 'darlings'];
+const PANE_VIEWS = { comments: '#sticky-list', notes: '#aux-editor', outline: '#outline-list', darlings: '#darlings-list' };
+const paneTab = () => (PANE_TABS.includes(library.paneTab) ? library.paneTab : 'comments');
+// a script's outline is its scene cards, which want the page's width
+const paneCanHold = (name) => PANE_TABS.includes(name) && !(name === 'outline' && book && isScript());
+const outlineInPane = () => !!book && paneTab() === 'outline' && paneCanHold('outline');
+const paneTitle = (name) => (name === 'comments' ? t('Notes & Comments') : name === 'darlings' ? t('Darlings') : tabName(name));
+function paneBox() {
+  let box = $('#pane-view');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'pane-view';
+    $('#side-head').after(box);
+  }
+  return box;
+}
+// every view where it belongs now: the pane's in the pane, the others on the
+// page (shown there only while their tab is up); Comments, when it isn't the
+// pane's, waits in the pane hidden, or shows on the page as its own tab
+let paneLoaded = null; // the book whose notes the pane's editor holds
+function paneSync(reload) {
+  if (!book) return;
+  looseList(); // made once, beside the placeholders, before they ever move
+  const name = paneCanHold(paneTab()) ? paneTab() : 'comments';
+  const box = paneBox();
+  const aux = $('#aux-paper');
+  for (const [view, sel] of Object.entries(PANE_VIEWS)) {
+    const el = $(sel);
+    if (!el) continue;
+    if (view === name) {
+      if (el.parentElement !== box) box.appendChild(el);
+      el.hidden = false;
+    } else if (view === 'comments') {
+      if (currentTab === 'comments') { if (el.parentElement !== aux) aux.appendChild(el); el.hidden = false; }
+      else { if (el.parentElement !== box) box.appendChild(el); el.hidden = true; }
+    } else if (el.parentElement !== aux) {
+      aux.appendChild(el);
+      el.hidden = currentTab !== view;
+    }
+  }
+  const head = $('#side-head > span');
+  if (head) setText(head, paneTitle(name));
+  $('#side-pane').dataset.view = name;
+  $('#editor-view').classList.toggle('pane-wide', name !== 'comments');
+  $('#side-pane').setAttribute('aria-label', paneTitle(name));
+  $$('.tab').forEach((tb) => tb.classList.toggle('in-pane', tb.dataset.tab === name && name !== 'comments'));
+  // what the pane shows
+  if (name === 'notes') {
+    const ed = $('#aux-editor');
+    if (reload || paneLoaded !== book.id || ed.dataset.kind !== 'notes') {
+      flushAux();
+      ed.dataset.kind = 'notes';
+      paneLoaded = book.id;
+      const id = book.id;
+      window.neo.readAux(id, 'notes').then((html) => { if (book && book.id === id && paneTab() === 'notes') ed.innerHTML = html || ''; });
+    }
+  } else if (paneLoaded) {
+    paneLoaded = null;
+    if ($('#aux-editor').dataset.kind === 'notes' && currentTab !== 'notes') { flushAux(); delete $('#aux-editor').dataset.kind; }
+  }
+  if (name === 'outline') paneOutline();
+  if (name === 'darlings') renderDarlings();
+}
+// the outline in the pane is its list: cards want the page's width
+function paneOutline() {
+  if (!outlineInPane()) return;
+  const list = $('#outline-list');
+  if (list.contains(document.activeElement)) return; // never redrawn under the writer's hand
+  renderOutline();
+  list.hidden = false;
+  // the page keeps what belongs to the page
+  if (currentTab !== 'outline') {
+    for (const id of ['#outline-board', '#outline-views', '#outline-board-hint']) { const el = $(id); if (el) el.hidden = true; }
+    $('#editor-view').classList.remove('board-on');
+  }
+}
+// after the book changes shape (the Chapters pane redraws then too)
+function paneRefresh() {
+  if (!book) return;
+  const name = paneTab();
+  if (name === 'outline') paneOutline();
+  else if (name === 'darlings' && !$('#darlings-list').contains(document.activeElement)) renderDarlings();
+}
+function openPane() {
+  const pane = $('#side-pane');
+  pane.classList.add('open');
+  paneRefresh();
+  const first = pane.querySelector('#pane-view [contenteditable="true"], #pane-view textarea, #pane-view button');
+  if (first) first.focus({ preventScroll: true });
+}
+async function sendToPane(name) {
+  if (!book || !paneCanHold(name)) return;
+  if (currentTab === name) switchTabInPage('manuscript');
+  else flushAux();
+  library.paneTab = name === 'comments' ? undefined : name;
+  if (!library.paneTab) delete library.paneTab;
+  paneSync(true);
+  // the point is to see it while writing: the pane opens, and stays
+  pinPane('side', true);
+  await writeLibrary(library);
+}
+async function backToPage(name) {
+  if (!book || paneTab() !== name || name === 'comments') return;
+  flushAux();
+  delete library.paneTab;
+  paneSync();
+  await writeLibrary(library);
+  switchTab(name);
+}
+// a click on a tab the pane holds goes to the pane
+function switchTab(name) {
+  if (book && name !== 'comments' && name === paneTab() && paneCanHold(name)) { openPane(); return; }
+  switchTabInPage(name);
+  paneSync();
+}
+// right-click a tab, or the pane's head: where it's shown
+async function paneMenu(name, x, y, from) {
+  if (!book || name === 'manuscript' || !paneCanHold(name)) return;
+  const here = paneTab() === name;
+  const items = here
+    ? [{ label: t('Back to the Page'), value: 'page', disabled: name === 'comments' }]
+    : [{ label: t('Show in the Right Pane'), value: 'pane' }];
+  const pick = await popMenu(x, y, items, { from });
+  if (pick === 'pane') sendToPane(name);
+  if (pick === 'page') backToPage(name);
+}
+$$('.tab').forEach((tab) => {
+  tab.addEventListener('contextmenu', (e) => {
+    if (tab.dataset.tab === 'manuscript') return;
+    e.preventDefault();
+    paneMenu(tab.dataset.tab, e.clientX, e.clientY, tab);
+  });
+});
+$('#side-head').addEventListener('contextmenu', (e) => {
+  if (!book) return;
+  e.preventDefault();
+  paneMenu(paneTab(), e.clientX, e.clientY, $('#side-head'));
+});
+// a pane that slides open shows what's current
+$('#side-pane').addEventListener('mouseenter', () => { if (book && paneTab() === 'darlings') paneRefresh(); });
+
+/* ================================================================== */
 /*  PLACEHOLDERS + STICKIES                                            */
 /* ================================================================== */
 
@@ -7280,6 +7433,7 @@ function renderNav() {
   list.appendChild(gap(book.chapterOrder.length));
   justAddedEntry = null;
   renderContentsLists();
+  paneRefresh(); // an outline or darlings in the right pane follows the book
 }
 
 // the first words of a page, for its box in the Chapters pane
@@ -7773,7 +7927,8 @@ function darlingFromKeyboard() {
 // well — for as long as the book is open.
 let tabPlaces = {};
 
-function switchTab(name) {
+// (switchTab, in PANE TABS, comes here unless the pane holds the tab)
+function switchTabInPage(name) {
   closeCardEditor();
   $('#editor-view').classList.remove('board-on');
   sidePaneForTab(name);
@@ -7826,6 +7981,11 @@ function switchTab(name) {
     renderDarlings();
     returnTo();
     findHere();
+  } else if (name === 'comments') {
+    // the placeholders, the page's width (paneSync brings the list here)
+    $('#aux-title').textContent = t('Notes & Comments');
+    renderStickies();
+    returnTo();
   } else if (name === 'outline') {
     $('#aux-title').textContent = tabName('outline');
     oList.hidden = false;
@@ -8250,7 +8410,7 @@ function removeGhost(body, p) {
 /*  A script's cards are its scenes (book.sceneNotes holds their notes). */
 /* ================================================================== */
 
-const outlineCardsOn = () => !!book && (isScript() || isShortStory() || (library.outlineView || 'cards') === 'cards');
+const outlineCardsOn = () => !!book && !outlineInPane() && (isScript() || isShortStory() || (library.outlineView || 'cards') === 'cards');
 const chapterBodyEl = (chId) => document.querySelector(`.chapter[data-id="${chId}"] .chapter-body`);
 const newSectionId = () => 'sec-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 

@@ -7110,17 +7110,15 @@ function storyTile(el, meta) {
   el.querySelector('.sy-author').textContent = meta.author ? t('by') + ' ' + meta.author : '';
   el.style.setProperty('--sy-font', ST_FONTS[stFont(meta)]);
   // where it stands, as a small stamp at the foot of the page: out on
-  // submission, sold, or the writer's own word; drafting goes unstamped
+  // submission, sold, or the writer's own word, drafting included
   const sub = meta.subs || {};
   const status = stStatus(meta);
   el.dataset.status = status;
-  if (status !== 'drafting') {
-    const mark = document.createElement('span');
-    mark.className = 'sy-mark st-' + status + (status === 'accepted' ? ' sold' : '');
-    mark.textContent = status === 'out' ? t('out · {n}', { n: sub.out }) : stStatusLabel(status).toLowerCase();
-    mark.title = status === 'out' ? t('Out at {n} markets', { n: sub.out }) : stStatusLabel(status);
-    el.appendChild(mark);
-  }
+  const mark = document.createElement('span');
+  mark.className = 'sy-mark st-' + status + (status === 'accepted' ? ' sold' : '');
+  mark.textContent = status === 'out' ? t('out · {n}', { n: sub.out }) : stStatusLabel(status).toLowerCase();
+  mark.title = status === 'out' ? t('Out at {n} markets', { n: sub.out }) : stStatusLabel(status);
+  el.appendChild(mark);
 }
 // ---- where a story stands ----
 function stStatusLabel(status) {

@@ -2243,7 +2243,7 @@ body.light .shelf-counts span { color: #8f897e; }
 .modal.sub-form { max-height: calc(100vh - 48px); overflow-y: auto; }
 
 /* where a story stands: the stamp on its page, the shelf filter, the tab's line */
-.story-tile .sy-mark.st-revising, .story-tile .sy-mark.st-ready { color: #6b6455; }
+.story-tile .sy-mark.st-drafting, .story-tile .sy-mark.st-revising, .story-tile .sy-mark.st-ready { color: #6b6455; }
 .story-tile .sy-mark.st-trunked { color: #8a8a8a; border-style: dashed; }
 #story-filter {
   background: none; border: 1px solid #3a3a3a; color: var(--muted);

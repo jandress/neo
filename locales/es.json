@@ -723,5 +723,7 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Tu nombre legal y cómo contactarte, un dato por línea. Va en la portada de cada guion y en la primera página de cada relato.",
   "Drag to move the scene": "Arrastra para mover la escena",
   "Keep Left Pane Open": "Mantener abierto el panel izquierdo",
-  "Keep Right Pane Open": "Mantener abierto el panel derecho"
+  "Keep Right Pane Open": "Mantener abierto el panel derecho",
+  "Enter — a new section · Backspace on an empty line removes it": "Intro — una sección nueva · Retroceso en una línea vacía la elimina",
+  "What this story is about…": "De qué trata este relato…"
 }

@@ -661,5 +661,7 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Yasal adınız ve size nasıl ulaşılacağı, her satıra bir bilgi. Her senaryonun kapak sayfasında ve her öykünün ilk sayfasında yer alır.",
   "Drag to move the scene": "Sahneyi taşımak için sürükleyin",
   "Keep Left Pane Open": "Sol paneli açık tut",
-  "Keep Right Pane Open": "Sağ paneli açık tut"
+  "Keep Right Pane Open": "Sağ paneli açık tut",
+  "Enter — a new section · Backspace on an empty line removes it": "Enter — yeni bölüm · Boş satırda Backspace onu siler",
+  "What this story is about…": "Bu öykü ne anlatıyor…"
 }

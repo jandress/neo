@@ -762,5 +762,7 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Imię i nazwisko oraz kontakt, jedna informacja w wierszu. Trafiają na stronę tytułową każdego scenariusza i pierwszą stronę każdego opowiadania.",
   "Drag to move the scene": "Przeciągnij, aby przenieść scenę",
   "Keep Left Pane Open": "Zostaw lewy panel otwarty",
-  "Keep Right Pane Open": "Zostaw prawy panel otwarty"
+  "Keep Right Pane Open": "Zostaw prawy panel otwarty",
+  "Enter — a new section · Backspace on an empty line removes it": "Enter — nowa sekcja · Backspace w pustym wierszu usuwa go",
+  "What this story is about…": "O czym jest to opowiadanie…"
 }

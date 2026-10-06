@@ -722,5 +722,7 @@
   "Your legal name and how to reach you, one item to a line. It goes on the title page of every script and the first page of every story.": "Ihr bürgerlicher Name und wie man Sie erreicht, eine Angabe pro Zeile. Er steht auf dem Titelblatt jedes Drehbuchs und auf der ersten Seite jeder Geschichte.",
   "Drag to move the scene": "Ziehen, um die Szene zu verschieben",
   "Keep Left Pane Open": "Linke Leiste offen lassen",
-  "Keep Right Pane Open": "Rechte Leiste offen lassen"
+  "Keep Right Pane Open": "Rechte Leiste offen lassen",
+  "Enter — a new section · Backspace on an empty line removes it": "Enter – neuer Abschnitt · Rücktaste in einer leeren Zeile entfernt sie",
+  "What this story is about…": "Worum es in dieser Geschichte geht…"
 }

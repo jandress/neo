@@ -6553,6 +6553,7 @@ function stCurrentPage() {
   return Math.min(stLayout.pages, stPageAt(down, stLayout.pages - 1, stLayout.gap));
 }
 function stCounters() {
+  stNavUpdate();
   const n = bookWordCount();
   const cat = ST_CATEGORY()[stCategory(n)];
   setText($('#word-counter'), t('{n} words', { n }) + ' · ' + cat);
@@ -6642,6 +6643,167 @@ $('#title-page').addEventListener('contextmenu', async (e) => {
   ], { title: t('Manuscript Font'), from: $('#title-page') });
   if (pick) stSetFont(pick);
 });
+// ---- the pane: the story's scenes, where a book lists its chapters ----
+// Each scene is the stretch between two # breaks: its number and opening
+// words, its length, and the same outline note its card carries on the
+// Outline (the first scene's is the chapter's own note, as on the board).
+// Click to go, drag to move it, note and all.
+const stChapter = () => (book.chapterOrder || []).find((c) => isStory(c)) || book.chapterOrder[0];
+function stScenes() {
+  const chId = stChapter();
+  return chId ? chapterSegments(chId) : [];
+}
+// the scene the caret is in
+function stCaretScene() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return -1;
+  let el = sel.anchorNode;
+  if (el && el.nodeType === Node.TEXT_NODE) el = el.parentElement;
+  const p = el && el.closest ? el.closest('.chapter-body > p') : null;
+  if (!p) return -1;
+  return stScenes().findIndex((sg) => sg.brk === p || sg.ps.includes(p));
+}
+function stSceneNote(chId, sg, k) {
+  if (sg.id) return (sectionNote(chId, sg.id) || {}).text || '';
+  return k === 0 ? ((book.chapterNotes || {})[chId] || '') : '';
+}
+// a note written in the pane is the card's: the first scene's untagged note
+// is the chapter's; any other scene gets a section note of its own, its
+// first line of prose carrying the note's id (as the board does it)
+function stSetSceneNote(k, val) {
+  const chId = stChapter();
+  const sg = stScenes()[k];
+  if (!chId || !sg || val === stSceneNote(chId, sg, k)) return;
+  book.sectionNotes = book.sectionNotes || {};
+  if (sg.id) {
+    const sec = sectionNote(chId, sg.id);
+    if (sec) { sec.text = val; scheduleMetaSave(); syncGhosts(chId); }
+    return;
+  }
+  if (k === 0) { (book.chapterNotes = book.chapterNotes || {})[chId] = val; scheduleMetaSave(); return; }
+  if (!val) return;
+  const anchor = sg.ps.find((p) => !p.classList.contains('ghost'));
+  if (!anchor) return;
+  const sec = { id: newSectionId(), text: val };
+  anchor.dataset.secId = sec.id;
+  (book.sectionNotes[chId] = book.sectionNotes[chId] || []).push(sec);
+  orderSectionNotes(chId);
+  syncChapter(chapterBodyEl(chId), chId);
+  scheduleMetaSave();
+}
+let stNavSig = '';
+function renderStoryNav() {
+  const list = $('#nav-list');
+  const chId = stChapter();
+  setText($('#nav-head span'), t('Scenes'));
+  const focused = document.activeElement && list.contains(document.activeElement) && document.activeElement.classList.contains('nav-note');
+  if (focused) return; // never redraw under a note being written
+  list.innerHTML = '';
+  const scenes = stScenes();
+  const here = stCaretScene();
+  stNavSig = scenes.map((sg) => sg.words + ':' + sg.first.slice(0, 40)).join('|');
+  scenes.forEach((sg, k) => {
+    const unwritten = !sg.words && !sg.first;
+    const item = document.createElement('div');
+    item.className = 'nav-item kind-chapter st-scene' + (k === here ? ' current' : '') + (unwritten ? ' unwritten' : '');
+    item.dataset.scene = String(k);
+    item.innerHTML = `<div class="n-row" title="${t('Drag to move the scene')}"><span class="n-num"></span><span class="n-label"></span><span class="n-words"></span></div>`;
+    item.querySelector('.n-num').textContent = String(k + 1);
+    item.querySelector('.n-label').textContent = sg.first || t('not written yet');
+    item.querySelector('.n-words').textContent = sg.words ? fmtNum(sg.words) : '';
+    const row = item.querySelector('.n-row');
+    if (!IS_POCKET) {
+      row.draggable = true;
+      row.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('application/x-neo-story-scene', String(k));
+        item.classList.add('dragging');
+        $('#nav-pane').classList.add('open');
+      });
+      row.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        const ind = list.querySelector('.nav-drop-ind');
+        if (ind) ind.remove();
+      });
+    }
+    const note = document.createElement('div');
+    note.className = 'nav-note' + (IS_POCKET ? ' nav-note-ro' : '');
+    note.textContent = stSceneNote(chId, sg, k);
+    if (!IS_POCKET) {
+      note.contentEditable = 'true';
+      note.spellcheck = false;
+      note.setAttribute('role', 'textbox');
+      note.setAttribute('aria-label', t('Outline note'));
+      note.addEventListener('click', (e) => e.stopPropagation());
+      note.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); note.blur(); }
+        e.stopPropagation();
+      });
+      note.addEventListener('blur', () => stSetSceneNote(k, note.textContent.trim()));
+    }
+    item.appendChild(note);
+    // to the scene's first line, near the top of the window
+    item.onclick = () => {
+      switchTab('manuscript');
+      const seg = stScenes()[k];
+      const p = seg && (seg.ps[0] || seg.brk);
+      if (!p || !p.isConnected) return;
+      const body = p.closest('.chapter-body');
+      body.focus({ preventScroll: true });
+      placeCaret(p, 0);
+      const sc = $('#paper-scroll');
+      sc.scrollTop += p.getBoundingClientRect().top - sc.getBoundingClientRect().top - sc.clientHeight / 4;
+      updateCounters();
+      if (IS_POCKET && $('#nav-pane').dataset.pinned !== '1') $('#nav-pane').classList.remove('open');
+    };
+    pressable(row, [String(k + 1), sg.first, sg.words ? t('{n} words', { n: sg.words }) : ''].filter(Boolean).join(', '));
+    list.appendChild(item);
+  });
+}
+// the scene the caret is in, lit; and the list redrawn when the scenes change
+function stNavUpdate() {
+  if (!book || !isShortStory() || !$('#nav-list')) return;
+  const scenes = stScenes();
+  const sig = scenes.map((sg) => sg.words + ':' + sg.first.slice(0, 40)).join('|');
+  if (sig !== stNavSig) { scheduleNavRefresh(); return; }
+  const here = stCaretScene();
+  $$('#nav-list .st-scene').forEach((el) => el.classList.toggle('current', Number(el.dataset.scene) === here));
+}
+// a scene dragged in the pane moves, its break and note with it, to the gold line
+(() => {
+  const list = $('#nav-list');
+  if (!list) return;
+  list.addEventListener('dragover', (e) => {
+    if (!e.dataTransfer.types.includes('application/x-neo-story-scene')) return;
+    e.preventDefault();
+    const ind = navDropInd();
+    let placed = false;
+    for (const it of list.querySelectorAll('.st-scene:not(.dragging)')) {
+      const r = it.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { list.insertBefore(ind, it); placed = true; break; }
+    }
+    if (!placed) list.appendChild(ind);
+  });
+  list.addEventListener('drop', (e) => {
+    const from = e.dataTransfer.getData('application/x-neo-story-scene');
+    if (from === '' || !book || !isShortStory()) return;
+    e.preventDefault();
+    const ind = list.querySelector('.nav-drop-ind');
+    let before = null;
+    if (ind) {
+      // the scene the line stands above (dragged scene included, by its place)
+      let k = 0;
+      for (const c of list.children) {
+        if (c === ind) { before = k; break; }
+        if (c.classList.contains('st-scene')) k++;
+      }
+      if (before !== null && before >= list.querySelectorAll('.st-scene').length) before = null;
+      ind.remove();
+    }
+    moveSection(stChapter(), Number(from), { ch: stChapter(), before });
+    stSchedule(0);
+    renderNav();
+  });
+})();
 // the page counter follows the reading as well as the caret
 $('#paper-scroll').addEventListener('scroll', () => {
   if (!book || !isShortStory() || currentTab !== 'manuscript') return;
@@ -6983,6 +7145,7 @@ function renderNav() {
   if (chapterDragActive) { navRefreshPending = true; return; }
   navRefreshPending = false;
   if (isScript()) { renderScriptNav(); return; }
+  if (isShortStory()) { renderStoryNav(); return; }
   const list = $('#nav-list');
   // a keyboard user on a chapter row keeps their place through the rebuild
   const focusedRow = document.activeElement && document.activeElement.classList.contains('n-row') &&
